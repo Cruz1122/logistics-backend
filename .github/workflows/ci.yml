@@ -26,6 +26,5 @@ jobs:
       - name: Wait for services to be ready
         run: sleep 10
 
-      # Optional: agregar test
-      - name: Run tests (si tenés test.js o npm test en un servicio)
+      - name: Run tests
         run: docker exec auth-service npm test || echo "No tests yet"

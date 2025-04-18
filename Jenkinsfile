@@ -18,11 +18,11 @@ pipeline {
             }
         }
 
-        stage('Run tests') {
-            steps {
-                // sh 'docker-compose run --rm auth npm test'
-            }
-        }
+        // stage('Run tests') {
+        //     steps {
+        //         sh 'docker-compose run --rm auth npm test'
+        //     }
+        // }
 
         stage('Push images') {
             when {

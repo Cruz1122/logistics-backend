@@ -1,0 +1,19 @@
+# Node
+node_modules/
+npm-debug.log
+.env
+
+# Docker
+*.log
+*.pid
+docker-compose.override.yml
+
+# Prisma
+.prisma/
+.env.local
+
+# VS Code
+.vscode/
+
+# Others
+.DS_Store

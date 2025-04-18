@@ -1,51 +1,34 @@
 pipeline {
-    agent any
+  agent any
 
-    environment {
-        COMPOSE_FILE = 'docker-compose.yml'
+  environment {
+    DOCKER_BUILDKIT = 1
+  }
+
+  stages {
+    stage('Clonar repo') {
+      steps {
+        git url: 'https://github.com/Cruz1122/logistics-backend.git', branch: 'develop'
+      }
     }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                git url: 'https://github.com/Cruz1122/logistics-backend.git', branch: 'main'
-            }
-        }
-
-        stage('Build services') {
-            steps {
-                sh 'docker-compose build'
-            }
-        }
-        // stage('Run tests') {
-        //     steps {
-        //         sh 'docker-compose run --rm auth npm test'
-        //     }
-        // }
-
-        stage('Push images') {
-            when {
-                branch 'main'
-            }
-            steps {
-                script {
-                    def services = ['backend-auth-service', 'backend-orders-service', 'api-gateway', 'backend-geo-service', 'backend-inventory-service','backend-reports-service'] 
-                    for (service in services) {
-                        def tag = "${DOCKER_REGISTRY}/${service}:latest"
-                        sh "docker tag ${service} ${tag}"
-                        sh "docker push ${tag}"
-                    }
-                }
-            }
-        }
-
-        // stage('Deploy') {
-        //     when {
-        //         branch 'main'
-        //     }
-        //     steps {
-        //         sh 'ssh user@mi-servidor "cd /ruta/proyecto && git pull && docker-compose pull && docker-compose up -d"'
-        //     }
-        // }
+    stage('Construir imágenes Docker') {
+      steps {
+        sh 'docker compose build'
+      }
     }
+
+    stage('Probar servicios') {
+      steps {
+        sh 'docker compose up -d'
+        // Aquí podrías correr pruebas con curl, Jest, etc.
+      }
+    }
+
+    stage('Parar servicios') {
+      steps {
+        sh 'docker compose down'
+      }
+    }
+  }
 }

@@ -37,29 +37,6 @@ Cada microservicio tiene su propio `Dockerfile`, `package.json` y lógica intern
 
 ---
 
-## 🖥️ Estructura del frontend
-```bash
-frontend/
-├── public/
-│   └── index.html
-│
-├── src/
-│   ├── api/  
-│   ├── assets/                
-│   ├── components/            
-│   ├── features/               
-│   │   ├── Auth/
-│   │   ├── Inventory/
-│   │   ├── Orders/
-│   │   ├── Geo/
-│   │   └── Reports/
-│   ├── redux/
-│   ├── utils/
-│   ├── routes/
-├── .env (local)
-├── vite.config.js
-```
-
 ## 🐳 Cómo levantar el proyecto
 
 ### 🔧 Requisitos previos

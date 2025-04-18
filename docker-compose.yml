@@ -38,3 +38,7 @@ services:
   #     - "4005:4005"
 volumes:
   pgdata:
+  jenkins-data:
+
+
+

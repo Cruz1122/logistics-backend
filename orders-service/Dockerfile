@@ -3,8 +3,12 @@ FROM node:18
 WORKDIR /app
 
 COPY package*.json ./
+
+# Instala nodemon globalmente
+RUN npm install -g nodemon
+
 RUN npm install
 
 COPY . .
 
-CMD ["npx", "nodemon", "src/index.js"]
+CMD ["nodemon", "src/index.js"]

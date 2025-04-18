@@ -7,38 +7,34 @@ services:
       - "3000:3000"
     depends_on:
       - auth-service
-      - geo-service
-      - inventory-service
-      - orders-service
-      - reports-service
+      # - geo-service
+      # - inventory-service
+      # - orders-service
+      # - reports-service
 
   auth-service:
     build: ./auth-service
     ports:
       - "4001:4001"
-    environment:
-      - NODE_ENV=development
 
-  geo-service:
-    build: ./geo-service
-    ports:
-      - "4002:4002"
-    environment:
-      - NODE_ENV=development
+  # geo-service:
+  #   build: ./geo-service
+  #   ports:
+  #     - "4002:4002"
 
-  inventory-service:
-    build: ./inventory-service
-    ports:
-      - "4003:4003"
+  # inventory-service:
+  #   build: ./inventory-service
+  #   ports:
+  #     - "4003:4003"
 
-  orders-service:
-    build: ./orders-service
-    ports:
-      - "4004:4004"
+  # orders-service:
+  #   build: ./orders-service
+  #   ports:
+  #     - "4004:4004"
   
-  reports-service:
-    build: ./reports-service
-    ports:
-      - "4005:4005"
+  # reports-service:
+  #   build: ./reports-service
+  #   ports:
+  #     - "4005:4005"
 volumes:
   pgdata:

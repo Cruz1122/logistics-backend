@@ -25,10 +25,10 @@ Este sistema permite a empresas de distribución optimizar sus operaciones media
 backend/
 ├── api-gateway/
 ├── auth-service/
-├── inventario-service/
-├── pedidos-service/
+├── inventory-service/
+├── orders-service/
 ├── geo-service/
-├── reportes-service/
+├── reports-service/
 ├── docker-compose.yml
 └── .env (local)
 ```
@@ -36,6 +36,29 @@ backend/
 Cada microservicio tiene su propio `Dockerfile`, `package.json` y lógica interna.
 
 ---
+
+## 🖥️ Estructura del frontend
+```bash
+frontend/
+├── public/
+│   └── index.html
+│
+├── src/
+│   ├── api/  
+│   ├── assets/                
+│   ├── components/            
+│   ├── features/               
+│   │   ├── Auth/
+│   │   ├── Inventory/
+│   │   ├── Orders/
+│   │   ├── Geo/
+│   │   └── Reports/
+│   ├── redux/
+│   ├── utils/
+│   ├── routes/
+├── .env (local)
+├── vite.config.js
+```
 
 ## 🐳 Cómo levantar el proyecto
 

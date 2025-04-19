@@ -2,6 +2,7 @@ const express = require("express");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const app = express();
+app.get("/", (req, res) => res.send("Gateway is alive!"));
 
 app.use(
   "/auth",

@@ -2,32 +2,32 @@ module.exports = {
   apps: [
     {
       name: "auth",
-      script: "auth-service/index.js",
+      script: "auth-service/src/index.js",
       watch: false,
     },
     {
       name: "inventory",
-      script: "inventory-service/index.js",
+      script: "inventory-service/src/index.js",
       watch: false,
     },
     {
       name: "orders",
-      script: "orders-service/index.js",
+      script: "orders-service/src/index.js",
       watch: false,
     },
     {
       name: "geo",
-      script: "geo-service/index.js",
+      script: "geo-service/src/index.js",
       watch: false,
     },
     {
       name: "reports",
-      script: "reports-service/index.js",
+      script: "reports-service/src/index.js",
       watch: false,
     },
     {
       name: "gateway",
-      script: "api-gateway/index.js",
+      script: "api-gateway/src/index.js",
       watch: false,
     },
   ],

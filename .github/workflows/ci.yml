@@ -26,5 +26,8 @@ jobs:
       - name: Wait for services to be ready
         run: sleep 10
 
-      - name: Run tests
+      - name: Check if containers are healthy
+        run: docker ps --filter "health=unhealthy" --format "{{.Names}}" && exit 1 || echo "All services healthy"
+
+      - name: Run auth tests
         run: docker exec auth-service npm test || echo "No tests yet"

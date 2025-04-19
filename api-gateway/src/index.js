@@ -2,6 +2,7 @@ const express = require("express");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const app = express();
+const PORT = process.env.GATEWAY_PORT;
 app.get("/", (req, res) => res.send("Gateway is alive!"));
 
 app.use(
@@ -45,6 +46,6 @@ app.use
   })
 );
 
-app.listen(3000, () => {
-  console.log("API Gateway listening on port 3000");
-});
+app.listen(PORT, () => {
+  console.log(`API Gateway is running on port ${PORT}`);
+})

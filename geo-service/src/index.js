@@ -1,6 +1,6 @@
 const express = require("express");
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.GEO_PORT;
 
 app.get("/", (_, res) => res.send("Geo Service OK"));
 app.listen(PORT, () => console.log(`Geo Service on port ${PORT}`));

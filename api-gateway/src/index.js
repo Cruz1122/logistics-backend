@@ -8,7 +8,7 @@ app.get("/", (req, res) => res.send("Gateway is alive!"));
 app.use(
   "/auth",
   createProxyMiddleware({
-    target: "http://auth-service:4001",
+    target: "http://localhost:4001",
     changeOrigin: true,
     pathRewrite: {
       "^/auth": "", // esto elimina "/auth" del path antes de enviar al microservicio
@@ -19,7 +19,7 @@ app.use(
 app.use(
   "/geo",
   createProxyMiddleware({
-    target: "http://geo-service:4002",
+    target: "http://localhost:4002",
     changeOrigin: true,
   })
 );
@@ -27,7 +27,7 @@ app.use(
 app.use(
   "/inventory",
   createProxyMiddleware({
-    target: "http://inventory-service:4003",
+    target: "http://localhost:4003",
     changeOrigin: true,
   })
 );
@@ -35,16 +35,15 @@ app.use(
 app.use(
   "/orders",
   createProxyMiddleware({
-    target: "http://orders-service:4004",
+    target: "http://localhost:4004",
     changeOrigin: true,
   })
 );
 
-app.use
-(
+app.use(
   "/reports",
   createProxyMiddleware({
-    target: "http://reports-service:4005",
+    target: "http://localhost:4005",
     changeOrigin: true,
   })
 );

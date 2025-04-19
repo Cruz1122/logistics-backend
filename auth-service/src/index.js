@@ -4,14 +4,12 @@ const { PrismaClient } = require("@prisma/client");
 const app = express();
 const prisma = new PrismaClient();
 
-app.get("/health", async (_, res) => {
+app.get("/health", async (req, res) => {
   try {
-    // Realiza una consulta básica para verificar la conexión
-    await prisma.$queryRaw`SELECT 1`;
-    res.status(200).send("Auth Service OK - Database Connected");
-  } catch (error) {
-    console.error("Database connection error:", error);
-    res.status(500).send("Auth Service OK - Database Connection Failed");
+    res.status(200).send("OK");
+  } catch (err) {
+    console.error("Health check failed:", err); // Log the error details
+    res.status(500).send("Unhealthy");
   }
 });
 

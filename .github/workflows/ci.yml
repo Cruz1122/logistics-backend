@@ -27,7 +27,15 @@ jobs:
         run: sleep 10
 
       - name: Check if containers are healthy
-        run: docker ps --filter "health=unhealthy" --format "{{.Names}}" && exit 1 || echo "All services healthy"
+        run: |
+          set -e
+
+          echo "Verificando health de auth-service..."
+          if ! curl --silent --fail http://localhost:4001/health; then
+            echo "auth-service está unhealthy"
+            exit 1
+          fi
+          echo "auth-service está healthy"
 
       - name: Run auth tests
         run: docker exec auth-service npm test || echo "No tests yet"

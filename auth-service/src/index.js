@@ -3,6 +3,7 @@ const { PrismaClient } = require("@prisma/client");
 
 const app = express();
 const prisma = new PrismaClient();
+const PORT = process.env.PORT;
 
 app.get("/health", async (req, res) => {
   try {
@@ -18,5 +19,5 @@ app.get("/users", async (req, res) => {
     res.json(users);
   });
   
-app.listen(4001, () => console.log("Auth Service on port 4001"));
+app.listen(PORT, () => console.log(`Auth Service on port ${PORT}`));
 console.log("DATABASE_URL:", process.env.DATABASE_URL);

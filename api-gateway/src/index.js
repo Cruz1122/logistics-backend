@@ -2,7 +2,7 @@ const express = require("express");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const app = express();
-const PORT = process.env.GATEWAY_PORT;
+const PORT = process.env.GATEWAY_PORT || 3000;
 app.get("/", (req, res) => res.send("Gateway is alive!"));
 
 app.use(
@@ -10,6 +10,9 @@ app.use(
   createProxyMiddleware({
     target: "http://auth-service:4001",
     changeOrigin: true,
+    pathRewrite: {
+      "^/auth": "", // esto elimina "/auth" del path antes de enviar al microservicio
+    },
   })
 );
 

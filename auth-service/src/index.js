@@ -3,7 +3,7 @@ const { PrismaClient } = require("@prisma/client");
 
 const app = express();
 const prisma = new PrismaClient();
-const PORT = process.env.AUTH_PORT;
+const PORT = process.env.AUTH_PORT || 4001;
 
 app.get("/health", async (req, res) => {
   try {

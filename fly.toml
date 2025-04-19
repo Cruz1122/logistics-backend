@@ -1,0 +1,8 @@
+app = "logistics-backend"
+primary_region = "bog"
+
+[build]
+  image = "docker"
+
+[deploy]
+  release_command = "echo 'Deploying logistics-backend with docker-compose'"

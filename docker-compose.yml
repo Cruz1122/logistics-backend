@@ -16,6 +16,26 @@ services:
     build: ./auth-service
     ports:
       - "4001:4001"
+    depends_on:
+      - auth-db
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@auth-db:5432/authdb?schema=public
+    volumes:
+      - ./auth-service:/app
+      - /app/node_modules
+
+  auth-db:
+    image: postgres:14
+    container_name: auth-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: authdb
+    ports:
+      - "5433:5432"  # 5433 en tu host, 5432 dentro del contenedor
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
   # geo-service:
   #   build: ./geo-service

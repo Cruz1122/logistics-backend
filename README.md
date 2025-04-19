@@ -14,7 +14,7 @@ Este sistema permite a empresas de distribución optimizar sus operaciones media
 - MongoDB (datos no estructurados / geolocalización)
 - API Gateway (http-proxy-middleware)
 - React + Vite (Frontend – en otro repo)
-- CI/CD: GitHub Actions (opcional)
+- CI/CD: GitHub Actions
 - Otros: JWT, Nodemailer, Twilio, ESLint
 
 ---

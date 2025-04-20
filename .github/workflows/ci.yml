@@ -21,6 +21,7 @@ jobs:
         run: |
           echo "AUTH_DATABASE_URL=${{ vars.AUTH_DATABASE_URL }}" > auth-service/.env
           echo "AUTH_PORT=4001" >> auth-service/.env
+          echo "DIRECT_URL=${{ vars.DIRECT_URL }}" >> auth-service/.env
 
 
       - name: Build docker-compose services

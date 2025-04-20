@@ -3,9 +3,8 @@ const bcrypt = require("bcrypt");
 const prisma = new PrismaClient();
 
 const signUp = async (req, res) => {
-  const { email, password, name, lastName ,phone, roleId} = req.body;
-  console.log("Entró");
-  
+  const { email, password, name, lastName, phone, roleId } = req.body;
+
   try {
     // Verifica si el email ya está en uso
     const existingUser = await prisma.user.findUnique({
@@ -77,11 +76,9 @@ const health = async (req, res) => {
     console.error("Health check failed:", err); // Log the error details
     res.status(500).send("Unhealthy");
   }
-}
-
-
+};
 
 module.exports = {
   signUp,
-  health
+  health,
 };

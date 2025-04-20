@@ -1,44 +1,27 @@
 const express = require("express");
-
-const { PrismaClient } = require("@prisma/client");
-
 const app = express();
-const prisma = new PrismaClient();
-const PORT = process.env.AUTH_PORT || 4001;
+const PORT = process.env.PORT || 4001;
+
+const authRoutes = require("./routes/authroutes");
+const roleRoutes = require("./routes/roleroutes");
+
 app.use(express.json());
+app.use("/auth", authRoutes);
+app.use("/roles", roleRoutes);
 
 app.get("/health", async (req, res) => {
   try {
+    await prisma.$queryRaw`SELECT 1`; // Verifica conexión DB
     res.status(200).send("OK");
   } catch (err) {
-    console.error("Health check failed:", err); // Log the error details
+    console.error("Health check failed:", err);
     res.status(500).send("Unhealthy");
   }
 });
-
-app.post("/roles", async (req, res) => {
-  const { name, description } = req.body;
-  try {
-    const role = await prisma.Role.create({
-      data: { name, description },
-    });
-    res.json(role);
-  } catch (error) {
-    console.error("Error creating role:", error); // Log the error details
-    res.status(500).json({ error: "Failed to create role" });
-  }
-})
-
-app.get("/roles", async (req, res) => {
-  const roles = await prisma.Role.findMany();
-  res.json(roles);
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
 });
 
-app.get("/users", async (req, res) => {
-    const users = await prisma.User.findMany();
-    res.json(users);
-  });
-  
 
 app.listen(PORT, () => console.log(`Auth Service on port ${PORT}`));
-console.log("DATABASE_URL:", process.env.DATABASE_URL);

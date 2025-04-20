@@ -17,6 +17,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Create .env file for auth-service
+        run: |
+          echo "DATABASE_URL=${{ vars.AUTH_URL }}" > auth-service/.env
+          echo "AUTH_PORT=4001" >> auth-service/.env
+
+
       - name: Build docker-compose services
         run: docker compose -f docker-compose.yml build
 

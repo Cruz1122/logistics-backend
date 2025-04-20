@@ -16,4 +16,5 @@ COPY . .
 RUN npx prisma generate
 
 # Comando de inicio
-CMD ["npx", "nodemon", "src/index.js"]
+CMD ["sh", "-c", "npx prisma db push && nodemon && npm start"]
+

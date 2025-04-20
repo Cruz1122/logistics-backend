@@ -38,7 +38,7 @@ jobs:
           set -e
 
           echo "Verificando health de auth-service..."
-          if ! curl --silent --fail http://localhost:4001/health; then
+          if ! curl --silent --fail http://localhost:3000/auth/health; then
             echo "auth-service está unhealthy"
             exit 1
           fi
@@ -46,3 +46,8 @@ jobs:
 
       - name: Run auth tests
         run: docker exec auth-service npm test || echo "No tests yet"
+
+      - name: Deploy on Render
+        if: github.ref == 'refs/heads/main'
+        run: |
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}

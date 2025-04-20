@@ -18,7 +18,6 @@ app.use(
   createProxyMiddleware({
     target: SERVICES.auth,
     changeOrigin: true,
-    pathRewrite: { "^/auth": "" },
   })
 );
 

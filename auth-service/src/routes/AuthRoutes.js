@@ -3,6 +3,6 @@ const router = express.Router();
 const { signUp, health } = require("../controllers/AuthController");
 
 router.post("/signup", signUp);
-router.post("/health", health);
+router.get("/health", health);
 
 module.exports = router;

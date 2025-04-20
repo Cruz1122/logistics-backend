@@ -6,7 +6,6 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instala todas las dependencias (asegúrate que @prisma/client esté en "dependencies")
-RUN npm install -g nodemon
 RUN npm install
 
 # Copia el resto del código
@@ -16,5 +15,5 @@ COPY . .
 RUN npx prisma generate
 
 # Comando de inicio
-CMD ["sh", "-c", "npx prisma db push && nodemon && npm start"]
+CMD ["sh", "-c", "npx prisma db push && npm start"]
 

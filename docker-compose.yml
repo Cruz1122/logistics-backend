@@ -25,19 +25,6 @@ services:
       timeout: 5s
       retries: 3
 
-  # auth-db:
-  #   image: postgres:14
-  #   container_name: auth-db
-  #   restart: always
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_DB: authdb
-  #   ports:
-  #     - "5433:5432"  # 5433 en tu host, 5432 dentro del contenedor
-  #   volumes:
-  #     - pgdata:/var/lib/postgresql/data
-
   # geo-service:
   #   build: ./geo-service
   #   ports:

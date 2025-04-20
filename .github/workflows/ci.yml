@@ -19,7 +19,7 @@ jobs:
 
       - name: Create .env file for auth-service
         run: |
-          echo "DATABASE_URL=${{ vars.AUTH_URL }}" > auth-service/.env
+          echo "AUTH_URL=${{ vars.AUTH_URL }}" > auth-service/.env
           echo "AUTH_PORT=4001" >> auth-service/.env
 
 

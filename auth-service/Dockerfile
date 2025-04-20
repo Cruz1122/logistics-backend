@@ -14,6 +14,7 @@ COPY . .
 # Genera el cliente Prisma (ya con todo el código y schema disponible)
 RUN npx prisma generate
 
+
 # Comando de inicio
 CMD ["sh", "-c", "npx prisma db push && npm start"]
 

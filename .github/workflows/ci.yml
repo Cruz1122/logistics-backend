@@ -46,3 +46,8 @@ jobs:
 
       - name: Run auth tests
         run: docker exec auth-service npm test || echo "No tests yet"
+
+      - name: Deploy on Render
+        if: github.ref == 'refs/heads/main'
+        run: |
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}

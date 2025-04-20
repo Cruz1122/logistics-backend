@@ -1,8 +1,11 @@
 const express = require("express");
+
 const { PrismaClient } = require("@prisma/client");
 
 const app = express();
 const prisma = new PrismaClient();
+const PORT = process.env.AUTH_PORT || 4001;
+app.use(express.json());
 
 app.get("/health", async (req, res) => {
   try {
@@ -13,10 +16,29 @@ app.get("/health", async (req, res) => {
   }
 });
 
+app.post("/roles", async (req, res) => {
+  const { name, description } = req.body;
+  try {
+    const role = await prisma.Role.create({
+      data: { name, description },
+    });
+    res.json(role);
+  } catch (error) {
+    console.error("Error creating role:", error); // Log the error details
+    res.status(500).json({ error: "Failed to create role" });
+  }
+})
+
+app.get("/roles", async (req, res) => {
+  const roles = await prisma.Role.findMany();
+  res.json(roles);
+});
+
 app.get("/users", async (req, res) => {
     const users = await prisma.User.findMany();
     res.json(users);
   });
   
-app.listen(4001, () => console.log("Auth Service on port 4001"));
+
+app.listen(PORT, () => console.log(`Auth Service on port ${PORT}`));
 console.log("DATABASE_URL:", process.env.DATABASE_URL);

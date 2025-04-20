@@ -1,4 +1,6 @@
 const express = require("express");
 const app = express();
+const PORT = process.env.GEO_PORT || 4002;
+
 app.get("/", (_, res) => res.send("Geo Service OK"));
-app.listen(4002, () => console.log("Auth Service on port 4002"));
+app.listen(PORT, () => console.log(`Geo Service on port ${PORT}`));

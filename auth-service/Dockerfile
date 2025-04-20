@@ -15,8 +15,6 @@ COPY . .
 # Genera el cliente Prisma (ya con todo el código y schema disponible)
 RUN npx prisma generate
 
-# Exposición del puerto (opcional)
-EXPOSE 4002
-
 # Comando de inicio
-CMD ["npx", "nodemon", "src/index.js"]
+CMD ["sh", "-c", "npx prisma db push && nodemon && npm start"]
+

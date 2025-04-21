@@ -11,6 +11,8 @@ RUN npm install
 # Copia el resto del código
 COPY . .
 
+
+RUN npm rebuild bcrypt --build-from-source
 # Genera el cliente Prisma (ya con todo el código y schema disponible)
 RUN npx prisma generate
 

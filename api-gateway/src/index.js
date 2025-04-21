@@ -1,9 +1,16 @@
 const express = require("express");
+const cors = require("cors");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const app = express();
 const PORT = process.env.GATEWAY_PORT || 3000;
 app.get("/", (req, res) => res.send("Gateway is alive!"));
+
+app.use(cors({
+  origin: "*", // Permitir todas las URLs
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 const SERVICES = {
   auth: process.env.AUTH_URL || "http://auth-service:4001",

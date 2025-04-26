@@ -25,14 +25,6 @@ services:
       timeout: 5s
       retries: 3
 
-  auth-tests:
-    build: ./auth-service
-    command: npm test
-    environment:
-      NODE_ENV: test
-    volumes:
-      - ./auth-service:/app
-
   # geo-service:
   #   build: ./geo-service
   #   ports:

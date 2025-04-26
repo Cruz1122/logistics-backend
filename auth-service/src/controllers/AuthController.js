@@ -29,6 +29,17 @@ const signUp = async (req, res) => {
       return res.status(422).json({ error: `Invalid roleId: ${roleId}` });
     }
 
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
+
+    if (!passwordRegex.test(password)) {
+      return res
+        .status(400)
+        .json({
+          error:
+            "Password must be at least 6 characters, include uppercase, lowercase, number and special character",
+        });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const emailCode = generateVerificationCode();
@@ -95,9 +106,7 @@ const verifyEmail = async (req, res) => {
     const now = new Date();
 
     if (now > user.emailCodeExpiresAt) {
-      return res
-        .status(400)
-        .json({ error: "Verification code may have expired." });
+      return res.status(400).json({ error: "Verification code has expired." });
     }
 
     await prisma.user.update({

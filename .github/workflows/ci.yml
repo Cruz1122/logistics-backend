@@ -45,7 +45,7 @@ jobs:
           echo "auth-service está healthy"
 
       - name: Run auth tests
-        run: npm test || echo "No tests yet"
+        run: docker exec auth-service npm test || echo "No tests yet"
 
       - name: Deploy on Render
         if: github.ref == 'refs/heads/main'

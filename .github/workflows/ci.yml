@@ -22,6 +22,7 @@ jobs:
           echo "AUTH_DATABASE_URL=${{ vars.AUTH_DATABASE_URL }}" > auth-service/.env
           echo "AUTH_PORT=4001" >> auth-service/.env
           echo "DIRECT_URL=${{ vars.DIRECT_URL }}" >> auth-service/.env
+          echo "JWT_SECRET=${{ vars.JWT_SECRET }}" >> auth-service/.env
 
 
       - name: Build docker-compose services
@@ -45,9 +46,7 @@ jobs:
           echo "auth-service está healthy"
 
       - name: Run auth tests
-        run: docker exec logistics-backend-auth-service-1 npm test || echo "No tests yet"
-        env:
-          JWT_SECRET: ${{ vars.JWT_SECRET }}
+        run: docker exec logistics-backend-auth-service-1 npm test
 
       - name: Deploy on Render
         if: github.ref == 'refs/heads/main'

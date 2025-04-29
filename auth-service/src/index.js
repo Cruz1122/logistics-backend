@@ -1,12 +1,13 @@
 const express = require("express");
-const routes = require("./routes/AuthRoutes");
+const authRoutes = require("./routes/AuthRoutes");
+const userRoutes = require("./routes/UserRoutes");
 
 const app = express();
 const PORT = process.env.AUTH_PORT || 4001;
 
 app.use(express.json());
-
-app.use(routes);
+app.use("/user",userRoutes);
+app.use("/auth",authRoutes);
 
 app.listen(PORT, () => {
   console.log(`Auth Service running on port ${PORT}`);

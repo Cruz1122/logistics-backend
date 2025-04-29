@@ -39,7 +39,7 @@ jobs:
           set -e
 
           echo "Verificando health de auth-service..."
-          if ! curl --silent --fail http://localhost:3000/auth/health; then
+          if ! curl --silent --fail http://localhost:3000/auth/auth/health; then
             echo "auth-service está unhealthy"
             exit 1
           fi

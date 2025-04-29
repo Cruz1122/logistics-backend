@@ -2,5 +2,14 @@
   "dependencies": {
     "bcrypt": "^5.1.1",
     "nodemailer": "^6.10.1"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.5.0",
+    "jest": "^29.7.0",
+    "supertest": "^7.1.0"
   }
 }

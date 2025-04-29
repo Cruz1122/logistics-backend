@@ -5,8 +5,8 @@ const getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
       include: {
-        role: true
-      }
+        role: true,
+      },
     });
     res.json(users);
   } catch (error) {
@@ -20,8 +20,7 @@ const getUserById = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { role: true }
-      
+      include: { role: true },
     });
 
     if (!user) {
@@ -77,7 +76,6 @@ const createUser = async (req, res) => {
   }
 
   try {
-    // Verificar que el correo no exista
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -86,7 +84,6 @@ const createUser = async (req, res) => {
       return res.status(400).json({ error: "Email already in use." });
     }
 
-    // Verificar que el rol exista
     const role = await prisma.role.findUnique({
       where: { id: roleId },
     });
@@ -107,7 +104,7 @@ const createUser = async (req, res) => {
         lastName,
         phone,
         roleId,
-        emailVerified: false,
+        emailVerified: true, //Creado por el admin
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -135,5 +132,5 @@ module.exports = {
   getUserById,
   updateUser,
   deleteUser,
-  createUser
+  createUser,
 };

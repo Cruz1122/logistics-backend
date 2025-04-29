@@ -4,7 +4,7 @@ const { sendVerificationEmail } = require("../utils/mailer");
 const jwt = require("jsonwebtoken");
 
 const generateVerificationCode = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString(); // Ej: 6 dígitos
+  return Math.floor(100000 + Math.random() * 900000).toString(); // 6 dígitos
 };
 
 const signUp = async (req, res) => {
@@ -32,12 +32,10 @@ const signUp = async (req, res) => {
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
 
     if (!passwordRegex.test(password)) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Password must be at least 6 characters, include uppercase, lowercase, number and special character",
-        });
+      return res.status(400).json({
+        error:
+          "Password must be at least 6 characters, include uppercase, lowercase, number and special character",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

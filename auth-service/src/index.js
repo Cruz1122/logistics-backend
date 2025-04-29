@@ -6,7 +6,7 @@ const app = express();
 const PORT = process.env.AUTH_PORT || 4001;
 
 app.use(express.json());
-app.use("/user",userRoutes);
+app.use("/users",userRoutes);
 app.use("/auth",authRoutes);
 
 app.listen(PORT, () => {

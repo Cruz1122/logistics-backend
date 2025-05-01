@@ -1,9 +1,11 @@
 const express = require("express");
 const cors = require("cors");
+require("dotenv").config();
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const app = express();
-const PORT = process.env.GATEWAY_PORT || 3000;
+const PORT = process.env.GATEWAY_PORT;
+
 app.get("/", (req, res) => res.send("Gateway is alive!"));
 
 app.use(cors({
@@ -13,11 +15,11 @@ app.use(cors({
 }));
 
 const SERVICES = {
-  auth: process.env.AUTH_URL || "http://auth-service:4001",
-  geo: process.env.GEO_URL || "http://geo-service:4002",
-  inventory: process.env.INVENTORY_URL || "http://inventory-service:4003",
-  orders: process.env.ORDERS_URL || "http://orders-service:4004",
-  reports: process.env.REPORTS_URL || "http://reports-service:4005",
+  auth: process.env.AUTH_URL,
+  geo: process.env.GEO_URL,
+  inventory: process.env.INVENTORY_URL,
+  orders: process.env.ORDERS_URL,
+  reports: process.env.REPORTS_URL,
 };
 
 app.use(

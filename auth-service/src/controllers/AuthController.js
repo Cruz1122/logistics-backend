@@ -87,6 +87,8 @@ const signUp = async (req, res) => {
   }
 };
 
+// ---------------------------------------|| -------------------------------------------||
+
 const verifyEmail = async (req, res) => {
   const { email, code } = req.body;
 
@@ -137,6 +139,8 @@ const verifyEmail = async (req, res) => {
   }
 };
 
+// ---------------------------------------|| -------------------------------------------||
+
 const resendVerificationCode = async (req, res) => {
   const { email } = req.body;
 
@@ -185,6 +189,8 @@ const resendVerificationCode = async (req, res) => {
     res.status(500).json({ error: "Failed to resend verification code." });
   }
 };
+
+// ---------------------------------------|| -------------------------------------------||
 
 const login = async (req, res) => {
   const { email, password, method } = req.body;
@@ -249,6 +255,7 @@ const login = async (req, res) => {
   }
 };
 
+// ---------------------------------------|| -------------------------------------------||
 
 const verify2FaCode = async (req, res) => {
   const { email, code } = req.body;
@@ -294,6 +301,158 @@ const verify2FaCode = async (req, res) => {
     res.status(500).json({ error: "Failed to verify 2FA code." });
   }
 };
+
+// ---------------------------------------|| -------------------------------------------||
+
+const requestPasswordReset = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: "Email is required." });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const resetCode = generateVerificationCode();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetCode: resetCode,
+        passwordResetCodeExpiresAt: expiresAt,
+        updatedAt: new Date(),
+      },
+    });
+
+    const emailSent = await sendVerificationEmail(
+      user.email,
+      resetCode,
+      `${user.name} ${user.lastName}`
+    );
+
+    if (!emailSent) {
+      return res.status(500).json({ error: "Failed to send reset code." });
+    }
+
+    res.status(200).json({
+      message: "Password reset code sent to your email.",
+    });
+  } catch (error) {
+    console.error("Error requesting password reset:", error);
+    res.status(500).json({ error: "Failed to request password reset." });
+  }
+};
+
+// ---------------------------------------|| -------------------------------------------||
+
+const resetPassword = async (req, res) => {
+  const { email, code, newPassword } = req.body;
+
+  if (!email || !code || !newPassword) {
+    return res.status(400).json({ error: "Email, code, and new password are required." });
+  }
+
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        email,
+        passwordResetCode: code,
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "Invalid email or reset code." });
+    }
+
+    if (new Date() > user.passwordResetCodeExpiresAt) {
+      return res.status(400).json({ error: "Reset code has expired." });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
+
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        error:
+          "Password must be at least 6 characters, include uppercase, lowercase, number and special character",
+      });
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashed,
+        passwordResetCode: null,
+        passwordResetCodeExpiresAt: null,
+        updatedAt: new Date(),
+      },
+    });
+
+    res.status(200).json({ message: "Password reset successfully." });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ error: "Failed to reset password." });
+  }
+};
+
+// ---------------------------------------|| -------------------------------------------||
+
+
+const changePassword = async (req, res) => {
+  const { email, password, newPassword } = req.body;
+
+  if (!email || !password || !newPassword) {
+    return res.status(400).json({ error: "Email, current password, and new password are required." });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: "Current password is incorrect." });
+    }
+
+    if (password === newPassword) {
+      return res.status(400).json({ error: "New password must be different from current password." });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        error:
+          "New password must be at least 6 characters, include uppercase, lowercase, number and special character.",
+      });
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashed,
+        updatedAt: new Date(),
+      },
+    });
+
+    res.status(200).json({ message: "Password updated successfully." });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    res.status(500).json({ error: "Failed to update password." });
+  }
+};
+
+
 // app.post("/roles", async (req, res) => {
 //   const { name, description } = req.body;
 //   try {
@@ -332,5 +491,8 @@ module.exports = {
   resendVerificationCode,
   login,
   verify2FaCode,
+  requestPasswordReset,
+  resetPassword,
+  changePassword,
   health,
 };

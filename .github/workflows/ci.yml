@@ -39,11 +39,11 @@ jobs:
           set -e
 
           echo "Verificando health de auth-service..."
-          if ! curl --silent --fail http://localhost:3000/auth/auth/health; then
+          curl -v http://localhost:3000/auth/auth/health || {
             echo "auth-service está unhealthy"
             exit 1
-          fi
-          echo "auth-service está healthy"
+          }
+
 
       - name: Run auth tests
         run: docker exec logistics-backend-auth-service-1 npm test

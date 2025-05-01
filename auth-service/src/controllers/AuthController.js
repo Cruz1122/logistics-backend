@@ -2,10 +2,14 @@ const bcrypt = require("bcrypt");
 const prisma = require("../config/prisma");
 const { sendVerificationEmail } = require("../utils/mailer");
 const jwt = require("jsonwebtoken");
+const { client } = require("../utils/twilio");
 
 const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6 dígitos
 };
+
+const generate2FACode = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
 
 const signUp = async (req, res) => {
   const { email, password, name, lastName, phone, roleId } = req.body;
@@ -133,6 +137,163 @@ const verifyEmail = async (req, res) => {
   }
 };
 
+const resendVerificationCode = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: "Email is required." });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ error: "User is already verified." });
+    }
+
+    const newCode = generateVerificationCode();
+    const expirationTime = new Date(Date.now() + 15 * 60 * 1000);
+
+    await prisma.user.update({
+      where: { email },
+      data: {
+        emailCode: newCode,
+        emailCodeExpiresAt: expirationTime,
+        updatedAt: new Date(),
+      },
+    });
+
+    const emailSent = await sendVerificationEmail(
+      email,
+      newCode,
+      `${user.name} ${user.lastName || ""}`
+    );
+
+    if (!emailSent) {
+      return res.status(500).json({ error: "Failed to send verification email." });
+    }
+
+    res.status(200).json({
+      message: "Verification code resent successfully. Please check your email.",
+    });
+  } catch (error) {
+    console.error("Error resending verification code:", error);
+    res.status(500).json({ error: "Failed to resend verification code." });
+  }
+};
+
+const login = async (req, res) => {
+  const { email, password, method } = req.body;
+
+  if (!email || !password || !method) {
+    return res.status(400).json({ error: "Email, password, and method are required." });
+  }
+
+  if (!["sms", "email"].includes(method)) {
+    return res.status(400).json({ error: "Invalid method. Must be 'sms' or 'email'." });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: "Invalid credentials." });
+    }
+
+    if (!user.emailVerified) {
+      return res.status(403).json({ error: "Please verify your email first." });
+    }
+
+    const code = generate2FACode();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        twoFactorCode: code,
+        twoFactorCodeExpiresAt: expiresAt,
+        updatedAt: new Date(),
+      },
+    });
+
+    if (method === "sms") {
+      await client.messages.create({
+        body: `Tu código de acceso es: ${code}`,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: user.phone,
+      });
+    } else if (method === "email") {
+      const emailSent = await sendVerificationEmail(email, code, `${user.name} ${user.lastName}`);
+      if (!emailSent) {
+        return res.status(500).json({ error: "Failed to send email code." });
+      }
+    }
+
+    res.status(200).json({
+      message: `2FA code sent via ${method.toUpperCase()}. Please verify to complete login.`,
+      email: user.email,
+      method,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ error: "Login failed." });
+  }
+};
+
+
+const verify2FaCode = async (req, res) => {
+  const { email, code } = req.body;
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (
+      !user ||
+      !user.twoFactorCode ||
+      !user.twoFactorCodeExpiresAt ||
+      user.twoFactorCode !== code
+    ) {
+      return res.status(400).json({ error: "Invalid or expired code." });
+    }
+
+    if (new Date() > user.twoFactorCodeExpiresAt) {
+      return res.status(400).json({ error: "Code expired." });
+    }
+
+    // Limpiar código 2FA
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        twoFactorCode: null,
+        twoFactorCodeExpiresAt: null,
+      },
+    });
+
+    // Genera JWT
+    const token = jwt.sign(
+      { id: user.id, roleId: user.roleId },
+      process.env.JWT_SECRET,
+      { expiresIn: "2h" }
+    );
+
+    res.status(200).json({
+      message: "2FA verified successfully.",
+      token,
+    });
+  } catch (error) {
+    console.error("2FA verification error:", error);
+    res.status(500).json({ error: "Failed to verify 2FA code." });
+  }
+};
 // app.post("/roles", async (req, res) => {
 //   const { name, description } = req.body;
 //   try {
@@ -168,5 +329,8 @@ const health = async (req, res) => {
 module.exports = {
   signUp,
   verifyEmail,
+  resendVerificationCode,
+  login,
+  verify2FaCode,
   health,
 };

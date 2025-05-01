@@ -197,7 +197,7 @@ const signIn = async (req, res) => {
   const { email, password, method } = req.body;
 
   if (!email || !password || !method) {
-    return res.status(400).json({ error: "Email, password, and method are required." });
+    return res.status(400).json({ error: "Email, password and method are required." });
   }
 
   if (!["sms", "email"].includes(method)) {
@@ -233,11 +233,27 @@ const signIn = async (req, res) => {
     });
 
     if (method === "sms") {
-      await client.messages.create({
+      if (!user.phone) {
+        return res.status(400).json({ error: "Phone number is required for SMS login." });
+      }
+
+      // Verificar que tenga '+' al inicio
+      if (!user.phone.startsWith("+")) {
+        return res
+          .status(400)
+          .json({
+            error: "Invalid phone number format. Must include country code.",
+          });
+      }
+
+      const smsSent = await client.messages.create({
         body: `Your access code is: ${code}`,
         from: process.env.TWILIO_PHONE_NUMBER,
         to: user.phone,
       });
+      if (!smsSent) {
+        return res.status(500).json({ error: "Failed to send SMS code." });
+      }
     } else if (method === "email") {
       const emailSent = await sendVerificationEmail(email, code, `${user.name} ${user.lastName}`);
       if (!emailSent) {
@@ -261,16 +277,17 @@ const signIn = async (req, res) => {
 const verifyTwoFactor = async (req, res) => {
   const { email, code } = req.body;
 
-  try {
-    const user = await prisma.user.findUnique({ where: { email } });
+  if (!email || !code) {
+    return res.status(400).json({ error: "Email and code are required." });
+  }
 
-    if (
-      !user ||
-      !user.twoFactorCode ||
-      !user.twoFactorCodeExpiresAt ||
-      user.twoFactorCode !== code
-    ) {
-      return res.status(400).json({ error: "Invalid or expired code." });
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email, twoFactorCode: code },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "Invalid code or email." });
     }
 
     if (new Date() > user.twoFactorCodeExpiresAt) {
@@ -356,11 +373,11 @@ const resetPassword = async (req, res) => {
   const { email, code, newPassword } = req.body;
 
   if (!email || !code || !newPassword) {
-    return res.status(400).json({ error: "Email, code, and new password are required." });
+    return res.status(400).json({ error: "Email, code and new password are required." });
   }
 
   try {
-    const user = await prisma.user.findFirst({
+    const user = await prisma.user.findUnique({
       where: {
         email,
         passwordResetCode: code,

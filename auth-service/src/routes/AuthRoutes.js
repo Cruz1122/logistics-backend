@@ -5,8 +5,8 @@ const { signUp, verifyEmail, resendVerificationCode, login, verify2FaCode, reque
 router.post("/signup", signUp);
 router.post("/verify-email", verifyEmail);
 router.post("/resend-verification", resendVerificationCode );
-router.post("/login", login);
-router.post("/verify2FaCode", verify2FaCode);
+router.post("/signin", login);
+router.post("/verify-two-factor", verify2FaCode);
 router.post("/request-password-reset", requestPasswordReset);
 router.post("/reset-password", resetPassword);
 router.patch("/change-password", changePassword);

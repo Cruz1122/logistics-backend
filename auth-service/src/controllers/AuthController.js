@@ -192,7 +192,7 @@ const resendVerificationCode = async (req, res) => {
 
 // ---------------------------------------|| -------------------------------------------||
 
-const login = async (req, res) => {
+const signIn = async (req, res) => {
   const { email, password, method } = req.body;
 
   if (!email || !password || !method) {
@@ -257,7 +257,7 @@ const login = async (req, res) => {
 
 // ---------------------------------------|| -------------------------------------------||
 
-const verify2FaCode = async (req, res) => {
+const verifyTwoFactor = async (req, res) => {
   const { email, code } = req.body;
 
   try {
@@ -489,8 +489,8 @@ module.exports = {
   signUp,
   verifyEmail,
   resendVerificationCode,
-  login,
-  verify2FaCode,
+  signIn,
+  verifyTwoFactor,
   requestPasswordReset,
   resetPassword,
   changePassword,

@@ -1,7 +1,6 @@
 const express = require("express");
 const authRoutes = require("./routes/AuthRoutes");
 const userRoutes = require("./routes/UserRoutes");
-const validateGateway = require("./middlewares/validateGateway");
 
 const app = express();
 const PORT = process.env.AUTH_PORT;

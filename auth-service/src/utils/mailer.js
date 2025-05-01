@@ -14,18 +14,18 @@ const transporter = nodemailer.createTransport({
     },
   });
 
-const sendVerificationEmail = async (email, code, fullName) => {
+const sendVerificationEmail = async (email, code, fullName, subject) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: "Código de verificación para tu cuenta",
+    subject: subject,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #333;">Verificación de cuenta</h2>
-        <p>Hola ${fullName},</p>
-        <p>Tu código de verificación es:</p>
+        <h2 style="color: #333;">${subject}</h2>
+        <p>Hi ${fullName},</p>
+        <p>Your code for ${subject} is:</p>
         <h1 style="text-align: center;">${code}</h1>
-        <p>Este código expira en 15 minutos.</p>
+        <p>This code expires in 15 minutes.</p>
       </div>
     `,
   };

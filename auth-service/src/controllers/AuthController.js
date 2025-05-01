@@ -174,7 +174,8 @@ const resendVerificationCode = async (req, res) => {
     const emailSent = await sendVerificationEmail(
       email,
       newCode,
-      `${user.name} ${user.lastName || ""}`
+      `${user.name} ${user.lastName || ""}`,
+      "Email verification"
     );
 
     if (!emailSent) {
@@ -233,7 +234,7 @@ const signIn = async (req, res) => {
 
     if (method === "sms") {
       await client.messages.create({
-        body: `Tu código de acceso es: ${code}`,
+        body: `Your access code is: ${code}`,
         from: process.env.TWILIO_PHONE_NUMBER,
         to: user.phone,
       });
@@ -332,7 +333,8 @@ const requestPasswordReset = async (req, res) => {
     const emailSent = await sendVerificationEmail(
       user.email,
       resetCode,
-      `${user.name} ${user.lastName}`
+      `${user.name} ${user.lastName}`,
+      "Password reset"
     );
 
     if (!emailSent) {
@@ -451,30 +453,6 @@ const changePassword = async (req, res) => {
     res.status(500).json({ error: "Failed to update password." });
   }
 };
-
-
-// app.post("/roles", async (req, res) => {
-//   const { name, description } = req.body;
-//   try {
-//     const role = await prisma.Role.create({
-//       data: { name, description },
-//     });
-//     res.json(role);
-//   } catch (error) {
-//     console.error("Error creating role:", error); // Log the error details
-//     res.status(500).json({ error: "Failed to create role" });
-//   }
-// });
-
-// app.get("/roles", async (req, res) => {
-//   const roles = await prisma.Role.findMany();
-//   res.json(roles);
-// });
-
-// app.get("/users", async (req, res) => {
-//     const users = await prisma.User.findMany();
-//     res.json(users);
-//   });
 
 const health = async (req, res) => {
   try {

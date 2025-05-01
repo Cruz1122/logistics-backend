@@ -66,7 +66,8 @@ const signUp = async (req, res) => {
     const emailSent = await sendVerificationEmail(
       email,
       emailCode,
-      `${name} ${lastName}`
+      `${name} ${lastName}`,
+      "Email verification"
     );
     if (!emailSent) {
       await prisma.user.delete({ where: { id: user.id } });
@@ -255,7 +256,7 @@ const signIn = async (req, res) => {
         return res.status(500).json({ error: "Failed to send SMS code." });
       }
     } else if (method === "email") {
-      const emailSent = await sendVerificationEmail(email, code, `${user.name} ${user.lastName}`);
+      const emailSent = await sendVerificationEmail(email, code, `${user.name} ${user.lastName}, "2FA code"`);
       if (!emailSent) {
         return res.status(500).json({ error: "Failed to send email code." });
       }

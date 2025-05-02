@@ -16,8 +16,7 @@ app.use("/roles", roleRoutes);
 app.use("/auth", authRoutes);
 app.use("/permissions", permissionRoutes);
 app.use("/role-permissions", rolePermissionRoutes);
-app.use("/auth/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.listen(PORT, () => {
   console.log(`Auth Service running on port ${PORT}`);

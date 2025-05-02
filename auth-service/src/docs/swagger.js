@@ -9,7 +9,7 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: '/auth',
+      url: '.',
       description: "API Gateway",
     },
   ],

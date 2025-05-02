@@ -4,6 +4,8 @@ const userRoutes = require("./routes/UserRoutes");
 const roleRoutes = require("./routes/RoleRoutes");
 const permissionRoutes = require("./routes/PermissionRoutes");
 const rolePermissionRoutes = require("./routes/RolePermissionRoutes");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./docs/swagger");
 
 const app = express();
 const PORT = process.env.AUTH_PORT;
@@ -14,6 +16,7 @@ app.use("/roles", roleRoutes);
 app.use("/auth", authRoutes);
 app.use("/permissions", permissionRoutes);
 app.use("/role-permissions", rolePermissionRoutes);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.listen(PORT, () => {
   console.log(`Auth Service running on port ${PORT}`);

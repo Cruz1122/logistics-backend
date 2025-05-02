@@ -7,12 +7,6 @@ const swaggerDefinition = {
     version: "1.0.0",
     description: "Documentación de la API de autenticación",
   },
-  servers: [
-    {
-      url: '.',
-      description: "API Gateway",
-    },
-  ],
   components: {
     securitySchemes: {
       bearerAuth: {

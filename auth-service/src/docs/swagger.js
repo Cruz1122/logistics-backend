@@ -1,4 +1,7 @@
 const swaggerJSDoc = require("swagger-jsdoc");
+const path = require("path");
+require("dotenv").config();
+const GATEWAY_URL = process.env.GATEWAY_URL
 
 const swaggerDefinition = {
   openapi: "3.0.0",
@@ -7,6 +10,12 @@ const swaggerDefinition = {
     version: "1.0.0",
     description: "Documentación de la API de autenticación",
   },
+  servers: [
+    {
+      url: `${GATEWAY_URL}/auth`,
+      description: "API Gateway",
+    },
+  ],
   components: {
     securitySchemes: {
       bearerAuth: {
@@ -20,7 +29,7 @@ const swaggerDefinition = {
 
 const options = {
   swaggerDefinition,
-  apis: ["./src/routes/*.js"], // Aquí apuntamos a tus rutas documentadas
+  apis: [path.join(__dirname, "../routes/*.js")], // Aquí apuntamos a tus rutas documentadas
 };
 
 module.exports = swaggerJSDoc(options);

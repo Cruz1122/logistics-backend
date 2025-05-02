@@ -1,7 +1,5 @@
 const swaggerJSDoc = require("swagger-jsdoc");
 const path = require("path");
-require("dotenv").config();
-const GATEWAY_URL = process.env.GATEWAY_URL
 
 const swaggerDefinition = {
   openapi: "3.0.0",
@@ -12,8 +10,8 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: `${GATEWAY_URL}/auth`,
-      description: "API Gateway",
+      url: `/auth`,
+      description: "Auth Service API",
     },
   ],
   components: {

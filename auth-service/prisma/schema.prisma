@@ -16,7 +16,7 @@ datasource db {
 
 model User {
   id                         String    @id @default(uuid())
-  roleId                     String
+  roleId                     String    @default("2b406949-6340-4801-ac31-06449644a6a4") // Guest
   email                      String    @unique
   password                   String
   name                       String

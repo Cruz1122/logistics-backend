@@ -8,6 +8,14 @@ const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6 dígitos
 };
 
+const capitalize = (str) => {
+  if (!str) return "";
+  return str
+    .split(" ") // Divide la cadena en palabras
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitaliza cada palabra
+    .join(" "); // Une las palabras nuevamente
+};
+
 const generate2FACode = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -15,7 +23,7 @@ const signUp = async (req, res) => {
   const { email, password, name, lastName, phone, roleId } = req.body;
 
   try {
-    if (!email || !password || !name || !lastName || !phone || !roleId) {
+    if (!email || !password || !name || !lastName || !phone) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
@@ -27,12 +35,15 @@ const signUp = async (req, res) => {
     if (existingUser) {
       return res.status(409).json({ error: "Email already in use" });
     }
+    
 
-    const roleExists = await prisma.role.findUnique({ where: { id: roleId } });
-    if (!roleExists) {
-      return res.status(422).json({ error: `Invalid roleId: ${roleId}` });
+    if (roleId) {
+      const roleExists = await prisma.role.findUnique({ where: { id: roleId } });
+      if (!roleExists) {
+        return res.status(422).json({ error: `Invalid roleId: ${roleId}` });
+      }
     }
-
+    
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
 
     if (!passwordRegex.test(password)) {
@@ -43,6 +54,8 @@ const signUp = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const formattedName = capitalize(name);
+    const formattedLastName = capitalize(lastName);
 
     const emailCode = generateVerificationCode();
     const emailCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
@@ -51,8 +64,8 @@ const signUp = async (req, res) => {
       data: {
         email,
         password: hashedPassword,
-        name,
-        lastName,
+        name: formattedName,
+        lastName: formattedLastName,
         phone,
         roleId,
         emailVerified: false,
@@ -66,7 +79,7 @@ const signUp = async (req, res) => {
     const emailSent = await sendVerificationEmail(
       email,
       emailCode,
-      `${name} ${lastName}`,
+      `${formattedName} ${formattedLastName}`,
       "Email verification"
     );
     if (!emailSent) {
@@ -260,7 +273,7 @@ const signIn = async (req, res) => {
         email,
         code,
         `${user.name} ${user.lastName}`,
-        "2FA code"
+        "2FA"
       );
       if (!emailSent) {
         return res.status(500).json({ error: "Failed to send email code." });

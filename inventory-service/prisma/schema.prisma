@@ -69,17 +69,15 @@ model ProductSupplier {
 
 model Warehouse {
   id            String  @id @default(uuid())
-  cityId        String
-  managerId     String
   name          String  @db.VarChar(100)
   address       String  @db.VarChar(255)
-  city          String  @db.VarChar(100)
-  state         String  @db.VarChar(100)
   postalCode    String  @db.VarChar(10)
   latitude      Decimal
   longitude     Decimal
   capacityM2    Decimal
   status        String  @db.VarChar(20)
+  managerId     String
+  cityId        String
 
   cityRelation        City               @relation(fields: [cityId], references: [id])
   productWarehouses   ProductWarehouse[]

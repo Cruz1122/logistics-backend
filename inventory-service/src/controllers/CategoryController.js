@@ -1,7 +1,4 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient({
-  datasources: { db: { schema: "inventory_service" } },
-});
+const prisma = require("../config/prisma");
 
 module.exports = {
   // Get all categories

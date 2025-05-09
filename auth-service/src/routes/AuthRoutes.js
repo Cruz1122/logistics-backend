@@ -10,6 +10,8 @@ const { signUp, verifyEmail, resendVerificationCode, signIn, verifyTwoFactor, re
  *   post:
  *     summary: signup a new user
  *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -55,6 +57,8 @@ router.post("/signup", signUp);
  *   post:
  *     summary: Verify code sent to email
  *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -85,6 +89,8 @@ router.post("/verify-email", verifyEmail);
  *   post:
  *     summary: Resend verification code to email
  *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -113,6 +119,8 @@ router.post("/resend-verification", resendVerificationCode);
  *   post:
  *     summary: Sign in and send 2FA code
  *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -147,6 +155,8 @@ router.post("/signin", signIn);
  *   post:
  *     summary: Verify 2FA code (email or SMS)
  *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -179,6 +189,8 @@ router.post("/verify-two-factor", verifyTwoFactor);
  *   post:
  *     summary: Send password reset code via email
  *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -206,6 +218,8 @@ router.post("/request-password-reset", requestPasswordReset);
  *   post:
  *     summary: Reset password using recovery code
  *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -239,6 +253,8 @@ router.post("/reset-password", resetPassword);
  *   patch:
  *     summary: Change password when authenticated
  *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:

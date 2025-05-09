@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const authenticate = require("../middlewares/authenticate");
 const {
   getAllRolePermissions,
   createRolePermission,
@@ -16,13 +17,15 @@ const {
  *   get:
  *     summary: Get all permissions assigned to a role
  *     tags: [RolePermissions]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Role permissions list
  *       404:
  *         description: Role not found
 */
-router.get("/role-permissions", getAllRolePermissions);
+router.get("/role-permissions", authenticate(),getAllRolePermissions);
 
 /**
  * @swagger
@@ -30,6 +33,8 @@ router.get("/role-permissions", getAllRolePermissions);
  *   get:
  *     summary: Get role-permission by ID
  *     tags: [RolePermissions]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -42,7 +47,7 @@ router.get("/role-permissions", getAllRolePermissions);
  *       404:
  *         description: Role-permission not found
  */
-router.get("/:id", getRolePermissionById);
+router.get("/:id", authenticate(),getRolePermissionById);
 
 /**
  * @swagger
@@ -50,6 +55,8 @@ router.get("/:id", getRolePermissionById);
  *   post:
  *     summary: Assign a permission to a role
  *     tags: [RolePermissions]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -78,7 +85,7 @@ router.get("/:id", getRolePermissionById);
  *       201:
  *         description: Role permission assigned
  */ 
-router.post("/", createRolePermission);
+router.post("/", authenticate(),createRolePermission);
 
 /** 
  * @swagger
@@ -87,6 +94,8 @@ router.post("/", createRolePermission);
  *     summary: Update role permission flags
  *     tags: 
  *       - RolePermissions
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -124,7 +133,7 @@ router.post("/", createRolePermission);
  *       404:
  *         description: Role-permission relation not found
 */
-router.put("/:id", updateRolePermission);
+router.put("/:id", authenticate(),updateRolePermission);
 
 /** 
  * @swagger
@@ -133,6 +142,8 @@ router.put("/:id", updateRolePermission);
  *     summary: Delete a role-permission relation
  *     tags: 
  *       - RolePermissions
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -145,6 +156,6 @@ router.put("/:id", updateRolePermission);
  *       404:
  *         description: Role-permission not found
 */
-router.delete("/:id", deleteRolePermission);
+router.delete("/:id", authenticate(),deleteRolePermission);
 
 module.exports = router;

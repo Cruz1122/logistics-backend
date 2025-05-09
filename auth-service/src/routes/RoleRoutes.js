@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const authenticate = require("../middlewares/authenticate");
 const {
     getRoles,
     getRoleById,
@@ -15,11 +16,13 @@ const {
  *   get:
  *     summary: Get all roles
  *     tags: [Roles]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of roles
  */
-router.get("/roles", getRoles);
+router.get("/roles", authenticate(),getRoles);
 
 /**
  *  @swagger
@@ -27,6 +30,8 @@ router.get("/roles", getRoles);
  *    get:
  *     summary: Get role by ID
  *     tags: [Roles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -39,7 +44,7 @@ router.get("/roles", getRoles);
  *       404:
  *         description: Role not found
  */
-router.get("/:id", getRoleById);
+router.get("/:id", authenticate(),getRoleById);
 
 /**
  * @swagger
@@ -47,6 +52,8 @@ router.get("/:id", getRoleById);
  *   put:
  *     summary: Replace role
  *     tags: [Roles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -70,7 +77,7 @@ router.get("/:id", getRoleById);
  *       404:
  *         description: Role not found
  */
-router.put("/:id", updateRole);
+router.put("/:id", authenticate(),updateRole);
 
 
 /**
@@ -79,6 +86,8 @@ router.put("/:id", updateRole);
  *    delete:
  *     summary: Delete role
  *     tags: [Roles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -89,7 +98,7 @@ router.put("/:id", updateRole);
  *       200:
  *         description: Role deleted
  */
-router.delete("/:id", deleteRole);
+router.delete("/:id", authenticate(),deleteRole);
 
 /** 
  *  @swagger
@@ -97,6 +106,8 @@ router.delete("/:id", deleteRole);
  *    post:
  *     summary: Create a new role
  *     tags: [Roles]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -116,7 +127,7 @@ router.delete("/:id", deleteRole);
  *       400:
  *         description: Invalid input
  */
-router.post("/", createRole);
+router.post("/", authenticate(),createRole);
 
 
 module.exports = router;

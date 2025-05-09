@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const authenticate = require("../middlewares/authenticate");
 const {
   getAllUsers,
   getUserById,
@@ -15,11 +16,13 @@ const {
  *   get:
  *     summary: Get all users
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of users
  */
-router.get("/users", getAllUsers);
+router.get("/users", authenticate(),getAllUsers);
 
 
 /**
@@ -28,6 +31,8 @@ router.get("/users", getAllUsers);
  *   get:
  *     summary: Get user by ID
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -40,7 +45,7 @@ router.get("/users", getAllUsers);
  *       404:
  *         description: User not found
  */
-router.get("/:id", getUserById);
+router.get("/:id", authenticate(),getUserById);
 
 /**
  * @swagger
@@ -48,6 +53,8 @@ router.get("/:id", getUserById);
  *  put:
  *     summary: Update user
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -75,7 +82,7 @@ router.get("/:id", getUserById);
  *       404:
  *         description: User not found
  */
-router.put("/:id", updateUser);
+router.put("/:id", authenticate(),updateUser);
 
 
 /**
@@ -84,6 +91,8 @@ router.put("/:id", updateUser);
  *  delete:
  *     summary: Delete user
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -94,7 +103,7 @@ router.put("/:id", updateUser);
  *       200:
  *         description: User deleted
  */
-router.delete("/:id", deleteUser);
+router.delete("/:id", authenticate(),deleteUser);
 
 /**
  * @swagger
@@ -102,6 +111,8 @@ router.delete("/:id", deleteUser);
  *   post:
  *     summary: Create a new user
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -134,6 +145,6 @@ router.delete("/:id", deleteUser);
  *       400:
  *         description: Invalid input
  */
-router.post("/", createUser);
+router.post("/", authenticate(),createUser);
 
 module.exports = router;

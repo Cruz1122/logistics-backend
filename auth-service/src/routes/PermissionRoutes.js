@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const authenticate = require("../middlewares/authenticate");
 const {
   getAllPermissions,
   getPermissionById,
@@ -16,11 +17,13 @@ const {
  *   get:
  *     summary: Get all permissions
  *     tags: [Permissions]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of permissions
  */
-router.get("/permissions", getAllPermissions);
+router.get("/permissions", authenticate(),getAllPermissions);
 
 /**
  * @swagger
@@ -28,6 +31,8 @@ router.get("/permissions", getAllPermissions);
  *   get:
  *     summary: Get permission by ID
  *     tags: [Permissions]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -40,7 +45,7 @@ router.get("/permissions", getAllPermissions);
  *       404:
  *         description: Permission not found
 */
-router.get("/:id", getPermissionById);
+router.get("/:id", authenticate(),getPermissionById);
 
 
 /**
@@ -49,6 +54,8 @@ router.get("/:id", getPermissionById);
  *   post:
  *     summary: Create a new permission
  *     tags: [Permissions]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -68,7 +75,7 @@ router.get("/:id", getPermissionById);
  *       400:
  *         description: Invalid input
 */
-router.post("/", createPermission);
+router.post("/", authenticate(),createPermission);
 
 
 /**
@@ -77,6 +84,8 @@ router.post("/", createPermission);
  *   put:
  *     summary: Replace a permission
  *     tags: [Permissions]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -100,7 +109,7 @@ router.post("/", createPermission);
  *       404:
  *         description: Permission not found
  */
-router.put("/:id", updatePermission);
+router.put("/:id", authenticate(),updatePermission);
 
 /**  
  * @swagger
@@ -108,6 +117,8 @@ router.put("/:id", updatePermission);
  *   delete:
  *     summary: Delete a permission
  *     tags: [Permissions]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -118,6 +129,6 @@ router.put("/:id", updatePermission);
  *       200:
  *         description: Permission deleted
  */
-router.delete("/:id", deletePermission);
+router.delete("/:id", authenticate(),deletePermission);
 
 module.exports = router;

@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("INVENTORY_DATABASE_URL")
+  directUrl = env("INVENTORY_DIRECT_URL")
+  schemas   = ["inventory_service"] // Esquema específico para este microservicio
+}
+
+model Producto {
+  id_producto            String  @id @default(uuid())
+  id_categoria           String
+  nombre                 String  @db.VarChar(100)
+  descripcion            String  @db.VarChar(255)
+  sku                    String  @db.VarChar(50)
+  codigo_barras          String  @db.VarChar(50)
+  precio_unitario        Decimal
+  peso_kg                Decimal
+  dimensiones            String  @db.VarChar(50)
+  es_fragil              Boolean
+  requiere_refrigeracion Boolean
+
+  categoria           Categoria           @relation(fields: [id_categoria], references: [id_categoria])
+  productoAlmacenes   ProductoAlmacen[]
+  productoProveedores ProductoProveedor[]
+
+  @@schema("inventory_service")
+}
+
+model Categoria {
+  id_categoria String @id @default(uuid())
+  nombre       String @db.VarChar(100)
+
+  productos Producto[]
+
+  @@schema("inventory_service")
+}
+
+model Proveedor {
+  id_proveedor String @id @default(uuid())
+  nombre       String @db.VarChar(100)
+  telefono     String @db.VarChar(20)
+  email        String @db.VarChar(100)
+
+  productoProveedores ProductoProveedor[]
+
+  @@schema("inventory_service")
+}
+
+model ProductoProveedor {
+  id           String @id @default(uuid())
+  id_producto  String
+  id_proveedor String
+
+  producto  Producto  @relation(fields: [id_producto], references: [id_producto])
+  proveedor Proveedor @relation(fields: [id_proveedor], references: [id_proveedor])
+
+  @@schema("inventory_service")
+}
+
+model Almacen {
+  id_almacen    String  @id @default(uuid())
+  id_cuidad     String
+  id_gerente    String
+  nombre        String  @db.VarChar(100)
+  direccion     String  @db.VarChar(255)
+  ciudad        String  @db.VarChar(100)
+  departamento  String  @db.VarChar(100)
+  codigo_postal String  @db.VarChar(10)
+  latitud       Decimal
+  longitud      Decimal
+  capacidad_m2  Decimal
+  estado        String  @db.VarChar(20)
+
+  cuidad            Cuidad            @relation(fields: [id_cuidad], references: [id])
+  productoAlmacenes ProductoAlmacen[]
+
+  @@schema("inventory_service")
+}
+
+model ProductoAlmacen {
+  id                String   @id @default(uuid())
+  id_producto       String
+  id_almacen        String
+  cantidad_stock    Int
+  nivel_reorden     Int
+  ultima_reposicion DateTime
+  fecha_vencimiento DateTime
+  estado            String   @db.VarChar(20)
+
+  producto Producto @relation(fields: [id_producto], references: [id_producto])
+  almacen  Almacen  @relation(fields: [id_almacen], references: [id_almacen])
+
+  @@schema("inventory_service")
+}
+
+model Cuidad {
+  id              String @id @default(uuid())
+  id_departamento String
+  nombre          String @db.VarChar(100)
+
+  departamento Departamento @relation(fields: [id_departamento], references: [id])
+  almacenes    Almacen[]
+
+  @@schema("inventory_service")
+}
+
+model Departamento {
+  id     String @id @default(uuid())
+  nombre String @db.VarChar(100)
+
+  ciudades Cuidad[]
+
+  @@schema("inventory_service")
+}

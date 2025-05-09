@@ -1,7 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// This is your Prisma schema file.
+// Learn more at: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Looking for ways to speed up your queries or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
@@ -13,112 +13,112 @@ datasource db {
   provider  = "postgresql"
   url       = env("INVENTORY_DATABASE_URL")
   directUrl = env("INVENTORY_DIRECT_URL")
-  schemas   = ["inventory_service"] // Esquema específico para este microservicio
+  schemas   = ["inventory_service"] // Specific schema for this microservice
 }
 
-model Producto {
-  id_producto            String  @id @default(uuid())
-  id_categoria           String
-  nombre                 String  @db.VarChar(100)
-  descripcion            String  @db.VarChar(255)
-  sku                    String  @db.VarChar(50)
-  codigo_barras          String  @db.VarChar(50)
-  precio_unitario        Decimal
-  peso_kg                Decimal
-  dimensiones            String  @db.VarChar(50)
-  es_fragil              Boolean
-  requiere_refrigeracion Boolean
+model Product {
+  id           String  @id @default(uuid())
+  categoryId   String
+  name         String  @db.VarChar(100)
+  description  String  @db.VarChar(255)
+  sku          String  @db.VarChar(50)
+  barcode      String  @db.VarChar(50)
+  unitPrice    Decimal
+  weightKg     Decimal
+  dimensions   String  @db.VarChar(50)
+  isFragile    Boolean
+  needsCooling Boolean
 
-  categoria           Categoria           @relation(fields: [id_categoria], references: [id_categoria])
-  productoAlmacenes   ProductoAlmacen[]
-  productoProveedores ProductoProveedor[]
+  category            Category            @relation(fields: [categoryId], references: [id])
+  productWarehouses   ProductWarehouse[]
+  productSuppliers    ProductSupplier[]
 
   @@schema("inventory_service")
 }
 
-model Categoria {
-  id_categoria String @id @default(uuid())
-  nombre       String @db.VarChar(100)
+model Category {
+  id    String @id @default(uuid())
+  name  String @db.VarChar(100)
 
-  productos Producto[]
-
-  @@schema("inventory_service")
-}
-
-model Proveedor {
-  id_proveedor String @id @default(uuid())
-  nombre       String @db.VarChar(100)
-  telefono     String @db.VarChar(20)
-  email        String @db.VarChar(100)
-
-  productoProveedores ProductoProveedor[]
+  products Product[]
 
   @@schema("inventory_service")
 }
 
-model ProductoProveedor {
+model Supplier {
+  id       String @id @default(uuid())
+  name     String @db.VarChar(100)
+  phone    String @db.VarChar(20)
+  email    String @db.VarChar(100)
+
+  productSuppliers ProductSupplier[]
+
+  @@schema("inventory_service")
+}
+
+model ProductSupplier {
+  id         String @id @default(uuid())
+  productId  String
+  supplierId String
+
+  product  Product  @relation(fields: [productId], references: [id])
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@schema("inventory_service")
+}
+
+model Warehouse {
+  id            String  @id @default(uuid())
+  cityId        String
+  managerId     String
+  name          String  @db.VarChar(100)
+  address       String  @db.VarChar(255)
+  city          String  @db.VarChar(100)
+  state         String  @db.VarChar(100)
+  postalCode    String  @db.VarChar(10)
+  latitude      Decimal
+  longitude     Decimal
+  capacityM2    Decimal
+  status        String  @db.VarChar(20)
+
+  cityRelation        City               @relation(fields: [cityId], references: [id])
+  productWarehouses   ProductWarehouse[]
+
+  @@schema("inventory_service")
+}
+
+model ProductWarehouse {
+  id              String   @id @default(uuid())
+  productId       String
+  warehouseId     String
+  stockQuantity   Int
+  reorderLevel    Int
+  lastRestock     DateTime
+  expirationDate  DateTime
+  status          String   @db.VarChar(20)
+
+  product  Product   @relation(fields: [productId], references: [id])
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@schema("inventory_service")
+}
+
+model City {
   id           String @id @default(uuid())
-  id_producto  String
-  id_proveedor String
+  stateId      String
+  name         String @db.VarChar(100)
 
-  producto  Producto  @relation(fields: [id_producto], references: [id_producto])
-  proveedor Proveedor @relation(fields: [id_proveedor], references: [id_proveedor])
-
-  @@schema("inventory_service")
-}
-
-model Almacen {
-  id_almacen    String  @id @default(uuid())
-  id_cuidad     String
-  id_gerente    String
-  nombre        String  @db.VarChar(100)
-  direccion     String  @db.VarChar(255)
-  ciudad        String  @db.VarChar(100)
-  departamento  String  @db.VarChar(100)
-  codigo_postal String  @db.VarChar(10)
-  latitud       Decimal
-  longitud      Decimal
-  capacidad_m2  Decimal
-  estado        String  @db.VarChar(20)
-
-  cuidad            Cuidad            @relation(fields: [id_cuidad], references: [id])
-  productoAlmacenes ProductoAlmacen[]
+  state     State    @relation(fields: [stateId], references: [id])
+  warehouses Warehouse[]
 
   @@schema("inventory_service")
 }
 
-model ProductoAlmacen {
-  id                String   @id @default(uuid())
-  id_producto       String
-  id_almacen        String
-  cantidad_stock    Int
-  nivel_reorden     Int
-  ultima_reposicion DateTime
-  fecha_vencimiento DateTime
-  estado            String   @db.VarChar(20)
-
-  producto Producto @relation(fields: [id_producto], references: [id_producto])
-  almacen  Almacen  @relation(fields: [id_almacen], references: [id_almacen])
-
-  @@schema("inventory_service")
-}
-
-model Cuidad {
-  id              String @id @default(uuid())
-  id_departamento String
-  nombre          String @db.VarChar(100)
-
-  departamento Departamento @relation(fields: [id_departamento], references: [id])
-  almacenes    Almacen[]
-
-  @@schema("inventory_service")
-}
-
-model Departamento {
+model State {
   id     String @id @default(uuid())
-  nombre String @db.VarChar(100)
+  name   String @db.VarChar(100)
 
-  ciudades Cuidad[]
+  cities City[]
 
   @@schema("inventory_service")
 }

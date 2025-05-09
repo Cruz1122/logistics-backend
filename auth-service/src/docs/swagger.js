@@ -1,4 +1,5 @@
 const swaggerJSDoc = require("swagger-jsdoc");
+const path = require("path");
 
 const swaggerDefinition = {
   openapi: "3.0.0",
@@ -9,8 +10,8 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: "http://localhost:3000/auth",
-      description: "API Gateway",
+      url: `/auth`,
+      description: "Auth Service API",
     },
   ],
   components: {
@@ -31,7 +32,7 @@ const swaggerDefinition = {
 
 const options = {
   swaggerDefinition,
-  apis: ["./src/routes/*.js"], // Aquí apuntamos a tus rutas documentadas
+  apis: [path.join(__dirname, "../routes/*.js")], // Aquí apuntamos a tus rutas documentadas
 };
 
 module.exports = swaggerJSDoc(options);

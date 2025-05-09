@@ -1,6 +1,14 @@
 const prisma = require("../config/prisma");
 const bcrypt = require("bcrypt");
 
+const capitalize = (str) => {
+  if (!str) return "";
+  return str
+    .split(" ") // Divide la cadena en palabras
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitaliza cada palabra
+    .join(" "); // Une las palabras nuevamente
+};
+
 const getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -94,14 +102,16 @@ const createUser = async (req, res) => {
 
     // Hashear la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
+    const capitalizedName = capitalize(name);
+    const capitalizedLastName = capitalize(lastName);
 
     // Crear el usuario
     const newUser = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
-        name,
-        lastName,
+        name: capitalizedName,
+        lastName: capitalizedLastName,
         phone,
         roleId,
         emailVerified: true, //Creado por el admin

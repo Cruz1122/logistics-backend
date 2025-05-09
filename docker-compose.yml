@@ -3,10 +3,12 @@ services:
     build: ./api-gateway
     ports:
       - "3000:3000"
+    env_file:
+      - ./.env
     depends_on:
       - auth-service
       # - geo-service
-      # - inventory-service
+      - inventory-service
       # - orders-service
       # - reports-service
 
@@ -15,25 +17,24 @@ services:
     ports:
       - "4001:4001"
     env_file:
-      - ./auth-service/.env
+      - ./.env
     volumes:
       - ./auth-service:/app
       - /app/node_modules
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4001/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
 
   # geo-service:
   #   build: ./geo-service
   #   ports:
   #     - "4002:4002"
 
-  # inventory-service:
-  #   build: ./inventory-service
-  #   ports:
-  #     - "4003:4003"
+  inventory-service:
+    build: ./inventory-service
+    ports:
+      - "4003:4003"
+    env_file:
+      - ./.env
+    volumes:
+      - ./inventory-service:/app
 
   # orders-service:
   #   build: ./orders-service

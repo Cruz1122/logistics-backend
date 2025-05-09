@@ -17,21 +17,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Create .env file for api-gateway
+      - name: Create .env file
         run: |
-          echo "GATEWAY_PORT=${{ vars.GATEWAY_PORT }}" > api-gateway/.env
-          echo "AUTH_URL=${{ vars.AUTH_URL }}" >> api-gateway/.env
-          echo "GEO_URL=${{ vars.GEO_URL }}" >> api-gateway/.env
-          echo "INVENTORY_URL=${{ vars.INVENTORY_URL }}" >> api-gateway/.env
-          echo "ORDERS_URL=${{ vars.ORDERS_URL }}" >> api-gateway/.env
-          echo "REPORTS_URL=${{ vars.REPORTS_URL }}" >> api-gateway/.env
-
-      - name: Create .env file for auth-service
-        run: |
-          echo "AUTH_DATABASE_URL=${{ vars.AUTH_DATABASE_URL }}" > auth-service/.env
-          echo "AUTH_PORT=${{ vars.AUTH_PORT }}" >> auth-service/.env
-          echo "DIRECT_URL=${{ vars.DIRECT_URL }}" >> auth-service/.env
-          echo "JWT_SECRET=${{ vars.JWT_SECRET }}" >> auth-service/.env
+          echo "GATEWAY_PORT=${{ vars.GATEWAY_PORT }}" >> .env
+          echo "AUTH_URL=${{ vars.AUTH_URL }}" >> .env
+          echo "GEO_URL=${{ vars.GEO_URL }}" >> .env
+          echo "INVENTORY_URL=${{ vars.INVENTORY_URL }}" >> .env
+          echo "ORDERS_URL=${{ vars.ORDERS_URL }}" >> .env
+          echo "REPORTS_URL=${{ vars.REPORTS_URL }}" >> .env
+          echo "AUTH_DATABASE_URL=${{ vars.AUTH_DATABASE_URL }}" >> .env
+          echo "AUTH_PORT=${{ vars.AUTH_PORT }}" >>  .env
+          echo "DIRECT_URL=${{ vars.DIRECT_URL }}" >>  .env
+          echo "JWT_SECRET=${{ vars.JWT_SECRET }}" >>  .env
 
       - name: Build docker-compose services
         run: docker compose -f docker-compose.yml build

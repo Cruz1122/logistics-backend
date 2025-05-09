@@ -6,12 +6,14 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("AUTH_DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  directUrl = env("AUTH_DIRECT_URL")
+  schemas   = ["auth_service"]
 }
 
 model User {
@@ -33,6 +35,7 @@ model User {
   updatedAt                  DateTime  @updatedAt
 
   role Role @relation(fields: [roleId], references: [id], name: "RoleToUsers")
+  @@schema("auth_service")
 }
 
 model Role {
@@ -42,6 +45,7 @@ model Role {
 
   users       User[]           @relation("RoleToUsers")
   permissions RolePermission[]
+  @@schema("auth_service")
 }
 
 model Permission {
@@ -50,6 +54,7 @@ model Permission {
   description String?
 
   roles RolePermission[]
+  @@schema("auth_service")
 }
 
 model RolePermission {
@@ -67,4 +72,5 @@ model RolePermission {
   permission Permission @relation(fields: [permissionId], references: [id])
 
   @@unique([roleId, permissionId])
+  @@schema("auth_service")
 }

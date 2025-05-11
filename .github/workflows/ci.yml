@@ -49,6 +49,12 @@ jobs:
             exit 1
           }
 
+          echo "Verificando health de inventory-service..."
+          curl -v http://localhost:3000/inventory/health || {
+            echo "inventory-service está unhealthy"
+            exit 1
+          }
+
 
       - name: Run auth tests
         run: docker exec logistics-backend-auth-service-1 npm test

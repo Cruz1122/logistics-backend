@@ -1,9 +1,8 @@
 const bcrypt = require("bcrypt");
 const prisma = require("../config/prisma");
 const { sendVerificationEmail } = require("../utils/mailer");
-const jwt = require("jsonwebtoken");
+const { generateToken } = require("../utils/jwt");
 const { client } = require("../utils/twilio");
-const { get } = require("../routes/AuthRoutes");
 
 const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6 dígitos
@@ -138,15 +137,8 @@ const verifyEmail = async (req, res) => {
       },
     });
 
-    const token = jwt.sign(
-      { id: user.id, roleId: user.roleId },
-      process.env.JWT_SECRET,
-      { expiresIn: "15m" }
-    );
-
     res.status(200).json({
-      message: "Account verified successfully.",
-      token,
+      message: "Account verified successfully."
     });
   } catch (error) {
     console.error("Error verifying email:", error);
@@ -304,6 +296,7 @@ const verifyTwoFactor = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { email, twoFactorCode: code },
+      include: { role: true },
     });
 
     if (!user) {
@@ -323,12 +316,11 @@ const verifyTwoFactor = async (req, res) => {
       },
     });
 
-    // Genera JWT
-    const token = jwt.sign(
-      { id: user.id, roleId: user.roleId },
-      process.env.JWT_SECRET,
-      { expiresIn: "2h" }
-    );
+    const token = generateToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role.name,
+    });    
 
     res.status(200).json({
       message: "2FA verified successfully.",

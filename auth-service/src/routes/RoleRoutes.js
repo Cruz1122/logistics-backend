@@ -1,41 +1,43 @@
 const express = require("express");
 const router = express.Router();
-const authenticate = require("../middlewares/authenticate");
+const authorizeRoles = require("../middlewares/Auth");
 const {
-    getRoles,
-    getRoleById,
-    updateRole,
-    deleteRole,
-    createRole,
-
+  getRoles,
+  getRoleById,
+  updateRole,
+  deleteRole,
+  createRole,
 } = require("../controllers/RoleController");
 
 /**
  * @swagger
- *  /roles/roles:
+ * /roles/roles:
  *   get:
  *     summary: Get all roles
  *     tags: [Roles]
  *     security:
  *       - bearerAuth: []
+ *     description: Role allowed is admin.
  *     responses:
  *       200:
  *         description: List of roles
  */
-router.get("/roles", authenticate(),getRoles);
+router.get("/roles", authorizeRoles("admin"), getRoles);
 
 /**
- *  @swagger
- *  /roles/{id}:
- *    get:
+ * @swagger
+ * /roles/{id}:
+ *   get:
  *     summary: Get role by ID
  *     tags: [Roles]
  *     security:
  *       - bearerAuth: []
+ *     description: Role allowed is admin.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID of the role to retrieve
  *         schema:
  *           type: string
  *     responses:
@@ -44,20 +46,22 @@ router.get("/roles", authenticate(),getRoles);
  *       404:
  *         description: Role not found
  */
-router.get("/:id", authenticate(),getRoleById);
+router.get("/:id", authorizeRoles("admin"), getRoleById);
 
 /**
  * @swagger
- *  /roles/{id}:
+ * /roles/{id}:
  *   put:
  *     summary: Replace role
  *     tags: [Roles]
  *     security:
  *       - bearerAuth: []
+ *     description: Role allowed is admin.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID of the role to update
  *         schema:
  *           type: string
  *     requestBody:
@@ -77,37 +81,39 @@ router.get("/:id", authenticate(),getRoleById);
  *       404:
  *         description: Role not found
  */
-router.put("/:id", authenticate(),updateRole);
-
+router.put("/:id", authorizeRoles("admin"), updateRole);
 
 /**
- *  @swagger
- *   /roles/{id}:
- *    delete:
+ * @swagger
+ * /roles/{id}:
+ *   delete:
  *     summary: Delete role
  *     tags: [Roles]
  *     security:
  *       - bearerAuth: []
+ *     description: Role allowed is admin.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID of the role to delete
  *         schema:
  *           type: string
  *     responses:
  *       200:
  *         description: Role deleted
  */
-router.delete("/:id", authenticate(),deleteRole);
+router.delete("/:id", authorizeRoles("admin"), deleteRole);
 
-/** 
- *  @swagger
- *  /roles:
- *    post:
+/**
+ * @swagger
+ * /roles:
+ *   post:
  *     summary: Create a new role
  *     tags: [Roles]
  *     security:
  *       - bearerAuth: []
+ *     description: Role allowed is admin.
  *     requestBody:
  *       required: true
  *       content:
@@ -127,7 +133,6 @@ router.delete("/:id", authenticate(),deleteRole);
  *       400:
  *         description: Invalid input
  */
-router.post("/", authenticate(),createRole);
-
+router.post("/", authorizeRoles("admin"), createRole);
 
 module.exports = router;

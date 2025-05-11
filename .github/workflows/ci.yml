@@ -37,7 +37,7 @@ jobs:
         run: docker compose -f docker-compose.yml up -d
 
       - name: Wait for services to be ready
-        run: sleep 10
+        run: sleep 30
 
       - name: Check if containers are healthy
         run: |

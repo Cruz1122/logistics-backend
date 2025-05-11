@@ -516,7 +516,11 @@ const getUserPermissions = async (req, res) => {
 
     res.status(200).json({
       userId: user.id,
-      roleId: user.roleId,
+      roleId: {
+        id: user.roleId,
+        name: user.role.name,
+        description: user.role.description,
+      },
       permissions,
     });
   } catch (error) {

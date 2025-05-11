@@ -3,6 +3,7 @@ const prisma = require("../config/prisma");
 const { sendVerificationEmail } = require("../utils/mailer");
 const jwt = require("jsonwebtoken");
 const { client } = require("../utils/twilio");
+const { get } = require("../routes/AuthRoutes");
 
 const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6 dígitos
@@ -490,6 +491,48 @@ const changePassword = async (req, res) => {
   }
 };
 
+const getUserPermissions = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Verifica si el usuario existe y obtiene su roleId
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true }, // Incluye el rol del usuario
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // Obtén los permisos asociados al rol del usuario
+    const rolePermissions = await prisma.rolePermission.findMany({
+      where: { roleId: user.roleId },
+      include: { permission: true }, // Incluye los detalles del permiso
+    });
+
+    // Formatea los permisos para la respuesta
+    const permissions = rolePermissions.map((rp) => ({
+      permissionId: rp.permissionId,
+      name: rp.permission.name,
+      listar: rp.listar,
+      eliminar: rp.eliminar,
+      crear: rp.crear,
+      editar: rp.editar,
+      descargar: rp.descargar,
+    }));
+
+    res.status(200).json({
+      userId: user.id,
+      roleId: user.roleId,
+      permissions,
+    });
+  } catch (error) {
+    console.error("Error fetching user permissions:", error);
+    res.status(500).json({ error: "Failed to fetch user permissions." });
+  }
+};
+
 const health = async (req, res) => {
   try {
     res.status(200).send("OK");
@@ -508,5 +551,6 @@ module.exports = {
   requestPasswordReset,
   resetPassword,
   changePassword,
+  getUserPermissions,
   health,
 };

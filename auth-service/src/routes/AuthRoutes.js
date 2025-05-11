@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { signUp, verifyEmail, resendVerificationCode, signIn, verifyTwoFactor, requestPasswordReset, resetPassword, changePassword, health } = require("../controllers/AuthController");
+const { signUp, verifyEmail, resendVerificationCode, signIn, verifyTwoFactor, requestPasswordReset, resetPassword, changePassword, health, getUserPermissions } = require("../controllers/AuthController");
 
 
 //Registro de usuario:
@@ -279,6 +279,30 @@ router.post("/reset-password", resetPassword);
  *         description: Incorrect current password
  */
 router.patch("/change-password", changePassword);
+
+//Obtener permisos de usuario:
+/**
+ * @swagger
+ * /auth/users/{userId}/permissions:
+ *   get:
+ *     summary: Get user permissions
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         description: User ID
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User permissions retrieved successfully
+ *       404:
+ *         description: User not found
+ */
+router.get("/users/:userId/permissions", getUserPermissions);
 router.get("/health", health);
 
 module.exports = router;

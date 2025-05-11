@@ -244,8 +244,8 @@ const signIn = async (req, res) => {
         return res.status(400).json({ error: "Phone number is required for SMS login." });
       }
 
-      // Verificar que tenga '+' al inicio
-      if (!user.phone.startsWith("+")) {
+      // Verificar que tenga '+57' al inicio
+      if (!user.phone.startsWith("+57")) {
         return res
           .status(400)
           .json({
@@ -507,6 +507,7 @@ const getUserPermissions = async (req, res) => {
     const permissions = rolePermissions.map((rp) => ({
       permissionId: rp.permissionId,
       name: rp.permission.name,
+      description: rp.permission.description,
       listar: rp.listar,
       eliminar: rp.eliminar,
       crear: rp.crear,
@@ -515,12 +516,6 @@ const getUserPermissions = async (req, res) => {
     }));
 
     res.status(200).json({
-      userId: user.id,
-      roleId: {
-        id: user.roleId,
-        name: user.role.name,
-        description: user.role.description,
-      },
       permissions,
     });
   } catch (error) {

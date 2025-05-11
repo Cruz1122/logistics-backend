@@ -7,6 +7,7 @@ const productRoutes = require("./routes/ProductRoutes");
 const productWarehouseRoutes = require("./routes/ProductWarehouseRoutes");
 const supplierRoutes = require("./routes/SupplierRoutes");
 const productSupplierRoutes = require("./routes/ProductSupplierRoutes");
+const inventoryRoutes = require("./routes/InventoryRoutes");
 
 const app = express();
 const PORT = process.env.INVENTORY_PORT || 4003;
@@ -23,3 +24,4 @@ app.use("/product", productRoutes);
 app.use("/product-warehouse", productWarehouseRoutes);
 app.use("/supplier", supplierRoutes);
 app.use("/product-supplier", productSupplierRoutes);
+app.use("/inventory", inventoryRoutes);

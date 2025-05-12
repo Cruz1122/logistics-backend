@@ -13,7 +13,7 @@ const authorizeRoles = (...allowedRoles) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      if (!allowedRoles.includes((decoded.role.toLowerCase()))) {
+      if (!allowedRoles.includes((decoded.role.toLowerCase())) && allowedRoles.length > 0) {
         return res
           .status(403)
           .json({ message: "No tienes permiso para acceder a esta ruta" });

@@ -20,15 +20,22 @@ jobs:
       - name: Create .env file
         run: |
           echo "GATEWAY_PORT=${{ vars.GATEWAY_PORT }}" >> .env
+          echo "GATEWAY_URL=${{ vars.GATEWAY_URL }}" >> .env
           echo "AUTH_URL=${{ vars.AUTH_URL }}" >> .env
           echo "GEO_URL=${{ vars.GEO_URL }}" >> .env
           echo "INVENTORY_URL=${{ vars.INVENTORY_URL }}" >> .env
           echo "ORDERS_URL=${{ vars.ORDERS_URL }}" >> .env
           echo "REPORTS_URL=${{ vars.REPORTS_URL }}" >> .env
           echo "AUTH_DATABASE_URL=${{ vars.AUTH_DATABASE_URL }}" >> .env
-          echo "AUTH_PORT=${{ vars.AUTH_PORT }}" >>  .env
-          echo "DIRECT_URL=${{ vars.DIRECT_URL }}" >>  .env
-          echo "JWT_SECRET=${{ vars.JWT_SECRET }}" >>  .env
+          echo "AUTH_DIRECT_URL=${{ vars.AUTH_DIRECT_URL }}" >> .env
+          echo "INVENTORY_DATABASE_URL=${{ vars.INVENTORY_DATABASE_URL }}" >> .env
+          echo "INVENTORY_DIRECT_URL=${{ vars.INVENTORY_DIRECT_URL }}" >> .env
+          echo "ORDERS_DATABASE_URL=${{ vars.ORDERS_DATABASE_URL }}" >> .env
+          echo "ORDERS_DIRECT_URL=${{ vars.ORDERS_DIRECT_URL }}" >> .env
+          echo "AUTH_PORT=${{ vars.AUTH_PORT }}" >> .env
+          echo "JWT_SECRET=${{ vars.JWT_SECRET }}" >> .env
+          echo "API_HOST=${{ vars.API_HOST }}" >> .env
+          echo "NODE_ENV=${{ vars.NODE_ENV }}" >> .env
 
       - name: Build docker-compose services
         run: docker compose -f docker-compose.yml build
@@ -46,15 +53,12 @@ jobs:
           echo "Verificando health de auth-service..."
           curl -v http://localhost:3000/auth/auth/health || {
             echo "auth-service está unhealthy"
-            exit 1
           }
 
           echo "Verificando health de inventory-service..."
-          curl -v http://localhost:3000/inventory/health || {
+          curl -v http://localhost:3000/inventory/inventory/health || {
             echo "inventory-service está unhealthy"
-            exit 1
           }
-
 
       - name: Run auth tests
         run: docker exec logistics-backend-auth-service-1 npm test

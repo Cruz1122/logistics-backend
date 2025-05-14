@@ -32,7 +32,13 @@ jest.mock("twilio", () => {
 
 jest.mock("jsonwebtoken", () => ({
   sign: jest.fn().mockReturnValue("mockedToken"),
-  verify: jest.fn().mockReturnValue({ id: "1" }),
+  verify: jest
+    .fn()
+    .mockReturnValue({ id: "1", email: "john@doe.com", roleId: "1" }),
+}));
+
+jest.mock("../utils/jwt", () => ({
+  generateToken: jest.fn(),
 }));
 
 jest.mock("bcrypt", () => ({
@@ -54,6 +60,7 @@ const {
   changePassword,
 } = require("../controllers/AuthController"); // Importa la función signUp
 const { sendVerificationEmail } = require("../utils/mailer"); // Importa la función sendVerificationEmail
+const { generateToken } = require("../utils/jwt");
 const prisma = new PrismaClient(); // ahora es una versión falsa gracias al mock
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -291,7 +298,6 @@ describe("verifyEmail", () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       message: "Account verified successfully.",
-      token: expect.any(String),
     });
   });
 });
@@ -559,26 +565,41 @@ describe("verifyTwoFactor", () => {
   });
 
   test("Should verify the two-factor code successfully", async () => {
-    req.body = {
-      email: "john@doe.com",
-      code: "123456",
+    const req = {
+      body: {
+        email: "john@doe.com",
+        code: "123456",
+      },
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
     };
 
-    // Simulate that an user with the provided email and code exists and the code is valid
     prisma.user.findUnique.mockResolvedValue({
+      id: 1,
       email: "john@doe.com",
       twoFactorCode: "123456",
-      twoFactorCodeExpiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 min
+      twoFactorCodeExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      role: { name: "Admin" },
     });
-    prisma.user.update.mockResolvedValue({
-      twoFactorCode: null,
-      twoFactorCodeExpiresAt: null,
-    });
-
-    // Simulate JWT token generation
-    jwt.sign.mockReturnValue("mockedToken");
+    prisma.user.update.mockResolvedValue({});
+    generateToken.mockReturnValue("mockedToken");
 
     await verifyTwoFactor(req, res);
+
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: {
+        twoFactorCode: null,
+        twoFactorCodeExpiresAt: null,
+      },
+    });
+    expect(generateToken).toHaveBeenCalledWith({
+      userId: 1,
+      email: "john@doe.com",
+      role: "Admin",
+    });
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       message: "2FA verified successfully.",

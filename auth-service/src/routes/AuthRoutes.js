@@ -1,7 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const { signUp, verifyEmail, resendVerificationCode, signIn, verifyTwoFactor, requestPasswordReset, resetPassword, changePassword, health } = require("../controllers/AuthController");
-
+const authorizeRoles = require("../middlewares/Auth");
+const {
+  signUp,
+  verifyEmail,
+  resendVerificationCode,
+  signIn,
+  verifyTwoFactor,
+  requestPasswordReset,
+  resetPassword,
+  changePassword,
+  health,
+  getUserPermissions,
+} = require("../controllers/AuthController");
 
 //Registro de usuario:
 /**
@@ -48,8 +59,6 @@ const { signUp, verifyEmail, resendVerificationCode, signIn, verifyTwoFactor, re
  */
 router.post("/signup", signUp);
 
-
-
 //Verificación de correo electrónico:
 /**
  * @swagger
@@ -81,7 +90,6 @@ router.post("/signup", signUp);
  */
 router.post("/verify-email", verifyEmail);
 
-
 //Reenvío de código de verificación:
 /**
  * @swagger
@@ -109,8 +117,6 @@ router.post("/verify-email", verifyEmail);
  *         description: User not found
  */
 router.post("/resend-verification", resendVerificationCode);
-
-
 
 //Inicio de sesión:
 /**
@@ -147,7 +153,6 @@ router.post("/resend-verification", resendVerificationCode);
  */
 router.post("/signin", signIn);
 
-
 //Verificación de dos factores:
 /**
  * @swagger
@@ -180,8 +185,6 @@ router.post("/signin", signIn);
 
 router.post("/verify-two-factor", verifyTwoFactor);
 
-
-
 //Solicitud de restablecimiento de contraseña:
 /**
  * @swagger
@@ -209,7 +212,6 @@ router.post("/verify-two-factor", verifyTwoFactor);
  *         description: User not found
  */
 router.post("/request-password-reset", requestPasswordReset);
-
 
 //Restablecimiento de contraseña:
 /**
@@ -245,7 +247,6 @@ router.post("/request-password-reset", requestPasswordReset);
  */
 router.post("/reset-password", resetPassword);
 
-
 //Cambio de contraseña:
 /**
  * @swagger
@@ -255,6 +256,7 @@ router.post("/reset-password", resetPassword);
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
+ *     description: Authenticated users only
  *     requestBody:
  *       required: true
  *       content:
@@ -278,7 +280,37 @@ router.post("/reset-password", resetPassword);
  *       401:
  *         description: Incorrect current password
  */
-router.patch("/change-password", changePassword);
+router.patch("/change-password", authorizeRoles(), changePassword);
+
+/**
+ * @swagger
+ * /auth/users/{userId}/permissions:
+ *   get:
+ *     summary: Retrieve user permissions
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         description: ID of the user
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Permissions retrieved successfully
+ *       404:
+ *         description: User not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  "/users/:userId/permissions",
+  authorizeRoles("admin"),
+  getUserPermissions
+);
+
 router.get("/health", health);
 
 module.exports = router;

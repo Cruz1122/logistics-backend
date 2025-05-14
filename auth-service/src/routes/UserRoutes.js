@@ -1,15 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const authenticate = require("../middlewares/authenticate");
+const authorizeRoles = require("../middlewares/Auth");
 const {
   getAllUsers,
   getUserById,
   updateUser,
   deleteUser,
-  createUser
+  createUser,
 } = require("../controllers/UserController");
 
-// Ruta base: /users
 /**
  * @swagger
  * /users/users:
@@ -18,25 +17,27 @@ const {
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
+ *     description: Role allowed is admin.
  *     responses:
  *       200:
  *         description: List of users
  */
-router.get("/users", authenticate(),getAllUsers);
-
+router.get("/users", authorizeRoles("admin"), getAllUsers);
 
 /**
  * @swagger
- *  /users/{id}:
+ * /users/{id}:
  *   get:
  *     summary: Get user by ID
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
+ *     description: Role allowed is admin.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID of the user to retrieve
  *         schema:
  *           type: string
  *     responses:
@@ -45,20 +46,22 @@ router.get("/users", authenticate(),getAllUsers);
  *       404:
  *         description: User not found
  */
-router.get("/:id", authenticate(),getUserById);
+router.get("/:id", authorizeRoles("admin"), getUserById);
 
 /**
  * @swagger
  * /users/{id}:
- *  put:
+ *   put:
  *     summary: Update user
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
+ *     description: Role allowed is admin.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID of the user to update
  *         schema:
  *           type: string
  *     requestBody:
@@ -82,28 +85,29 @@ router.get("/:id", authenticate(),getUserById);
  *       404:
  *         description: User not found
  */
-router.put("/:id", authenticate(),updateUser);
-
+router.put("/:id", authorizeRoles("admin"), updateUser);
 
 /**
  * @swagger
  * /users/{id}:
- *  delete:
+ *   delete:
  *     summary: Delete user
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
+ *     description: Role allowed is admin.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID of the user to delete
  *         schema:
  *           type: string
  *     responses:
  *       200:
  *         description: User deleted
  */
-router.delete("/:id", authenticate(),deleteUser);
+router.delete("/:id", authorizeRoles("admin"), deleteUser);
 
 /**
  * @swagger
@@ -113,6 +117,7 @@ router.delete("/:id", authenticate(),deleteUser);
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
+ *     description: Role allowed is admin.
  *     requestBody:
  *       required: true
  *       content:
@@ -145,6 +150,6 @@ router.delete("/:id", authenticate(),deleteUser);
  *       400:
  *         description: Invalid input
  */
-router.post("/", authenticate(),createUser);
+router.post("/", authorizeRoles("admin"), createUser);
 
 module.exports = router;

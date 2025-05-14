@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const authenticate = require("../middlewares/authenticate");
+const authorizeRoles = require("../middlewares/Auth");
 const {
   getAllPermissions,
   getPermissionById,
@@ -9,44 +9,48 @@ const {
   deletePermission,
 } = require("../controllers/PermissionController");
 
-// Ruta base: /permissions
-
 /**
  * @swagger
- * /permissions/permissions:
+ * /permissions:
  *   get:
- *     summary: Get all permissions
+ *     summary: Retrieve all permissions
  *     tags: [Permissions]
  *     security:
  *       - bearerAuth: []
+ *     description: Fetch a list of all permissions. Roles allowed are admin, manager.
  *     responses:
  *       200:
- *         description: List of permissions
+ *         description: List of permissions retrieved successfully
  */
-router.get("/permissions", authenticate(),getAllPermissions);
+router.get(
+  "/permissions",
+  authorizeRoles("admin", "manager"),
+  getAllPermissions
+);
 
 /**
  * @swagger
  * /permissions/{id}:
  *   get:
- *     summary: Get permission by ID
+ *     summary: Retrieve a permission by ID
  *     tags: [Permissions]
  *     security:
  *       - bearerAuth: []
+ *     description: Fetch a specific permission by its ID. Roles allowed are admin, manager.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID of the permission to retrieve
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: Permission found
+ *         description: Permission retrieved successfully
  *       404:
  *         description: Permission not found
-*/
-router.get("/:id", authenticate(),getPermissionById);
-
+ */
+router.get("/:id", authorizeRoles("admin", "manager"), getPermissionById);
 
 /**
  * @swagger
@@ -56,6 +60,7 @@ router.get("/:id", authenticate(),getPermissionById);
  *     tags: [Permissions]
  *     security:
  *       - bearerAuth: []
+ *     description: Add a new permission to the system. Role allowed is admin.
  *     requestBody:
  *       required: true
  *       content:
@@ -67,29 +72,32 @@ router.get("/:id", authenticate(),getPermissionById);
  *             properties:
  *               name:
  *                 type: string
+ *                 example: "CREATE_USER"
  *               description:
  *                 type: string
+ *                 example: "Allows creating new users"
  *     responses:
  *       201:
- *         description: Permission created
+ *         description: Permission created successfully
  *       400:
  *         description: Invalid input
-*/
-router.post("/", authenticate(),createPermission);
-
+ */
+router.post("/", authorizeRoles("admin"), createPermission);
 
 /**
  * @swagger
  * /permissions/{id}:
  *   put:
- *     summary: Replace a permission
+ *     summary: Update a permission
  *     tags: [Permissions]
  *     security:
  *       - bearerAuth: []
+ *     description: Update the details of an existing permission. Role allowed is admin.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID of the permission to update
  *         schema:
  *           type: string
  *     requestBody:
@@ -101,17 +109,19 @@ router.post("/", authenticate(),createPermission);
  *             properties:
  *               name:
  *                 type: string
+ *                 example: "EDIT_USER"
  *               description:
  *                 type: string
+ *                 example: "Allows editing user details"
  *     responses:
  *       200:
- *         description: Permission updated
+ *         description: Permission updated successfully
  *       404:
  *         description: Permission not found
  */
-router.put("/:id", authenticate(),updatePermission);
+router.put("/:id", authorizeRoles("admin"), updatePermission);
 
-/**  
+/**
  * @swagger
  * /permissions/{id}:
  *   delete:
@@ -119,16 +129,20 @@ router.put("/:id", authenticate(),updatePermission);
  *     tags: [Permissions]
  *     security:
  *       - bearerAuth: []
+ *     description: Remove a permission from the system. Role allowed is admin.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID of the permission to delete
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: Permission deleted
+ *         description: Permission deleted successfully
+ *       404:
+ *         description: Permission not found
  */
-router.delete("/:id", authenticate(),deletePermission);
+router.delete("/:id", authorizeRoles("admin"), deletePermission);
 
 module.exports = router;

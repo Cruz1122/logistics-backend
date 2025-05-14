@@ -13,6 +13,21 @@ const createLogStream = () => {
 
 const normalizeDecimal = (val) => parseFloat(String(val).replace(",", "."));
 
+// 👉 Función para convertir fecha "DD/MM/YYYY" a objeto Date válido
+const parseCsvDate = (rawDate) => {
+  if (!rawDate) return null;
+
+  const clean = rawDate.trim().replace(/[\u200B-\u200D\uFEFF]/g, "");
+  const [day, month, year] = clean.split("/");
+
+  if (!day || !month || !year) return null;
+
+  const isoFormat = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  const parsedDate = new Date(isoFormat);
+
+  return isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
 const uploadProductCSV = async (req, res) => {
   const filePath = req.file.path;
   const results = [];
@@ -31,14 +46,12 @@ const uploadProductCSV = async (req, res) => {
           const categoryName = row.categoria?.trim();
           const supplierId = row.id_proveedor?.trim();
 
-          // Validación de almacén
           const warehouse = allWarehouses.find(w => w.id === warehouseId);
           if (!warehouse) {
             logStream.write(`[${new Date().toISOString()}] Error creando producto "${productId}" - Almacén "${warehouseId}" no existe\n`);
             continue;
           }
 
-          // Creación o búsqueda de proveedor
           let supplier = await prisma.supplier.findUnique({ where: { id: supplierId } });
           if (!supplier) {
             try {
@@ -56,7 +69,6 @@ const uploadProductCSV = async (req, res) => {
             }
           }
 
-          // Creación o búsqueda de categoría
           let category = await prisma.category.findFirst({
             where: { name: { equals: categoryName, mode: "insensitive" } },
           });
@@ -73,9 +85,9 @@ const uploadProductCSV = async (req, res) => {
             }
           }
 
-          // Crear producto + relaciones
+          // Crear producto
           try {
-            const newProduct = await prisma.product.create({
+            await prisma.product.create({
               data: {
                 id: productId,
                 name: row.nombre_producto?.trim(),
@@ -90,6 +102,16 @@ const uploadProductCSV = async (req, res) => {
                 needsCooling: row.requiere_refrigeracion === "true",
               },
             });
+          } catch (err) {
+            logStream.write(`[${new Date().toISOString()}] Error creando producto "${productId}" - Producto ya existe o datos inválidos\n`);
+            continue;
+          }
+
+          // Crear relación producto-almacén
+          try {
+            const newProduct = await prisma.product.findUnique({
+              where: { id: productId },
+            });
 
             await prisma.productWarehouse.create({
               data: {
@@ -97,21 +119,26 @@ const uploadProductCSV = async (req, res) => {
                 warehouseId,
                 stockQuantity: parseInt(row.cantidad_stock),
                 reorderLevel: parseInt(row.nivel_reorden),
-                lastRestock: new Date(row.ultima_reposicion),
-                expirationDate: row.fecha_vencimiento ? new Date(row.fecha_vencimiento) : new Date("2100-01-01"),
+                lastRestock: parseCsvDate(row.ultima_reposicion) ?? new Date(),
+                expirationDate: parseCsvDate(row.fecha_vencimiento) ?? new Date("2100-01-01"),
                 status: row.estado?.trim(),
               },
             });
+          } catch (err) {
+            logStream.write(`[${new Date().toISOString()}] Error creando relación producto-almacén para "${productId}" - ${err.message}\n`);
+            continue;
+          }
 
+          // Crear relación producto-proveedor
+          try {
             await prisma.productSupplier.create({
               data: {
-                productId: newProduct.id,
+                productId: productId,
                 supplierId: supplier.id,
               },
             });
-
           } catch (err) {
-            logStream.write(`[${new Date().toISOString()}] Error creando producto "${productId}" - ${err.message}\n`);
+            logStream.write(`[${new Date().toISOString()}] Error creando relación producto-proveedor para "${productId}" - ${err.message}\n`);
           }
         }
 

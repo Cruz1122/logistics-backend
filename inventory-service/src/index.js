@@ -7,7 +7,7 @@ const productRoutes = require("./routes/ProductRoutes");
 const productWarehouseRoutes = require("./routes/ProductWarehouseRoutes");
 const supplierRoutes = require("./routes/SupplierRoutes");
 const productSupplierRoutes = require("./routes/ProductSupplierRoutes");
-const csvRoutes = require("./routes/csvRoutes");
+const csvRoutes = require("./routes/CsvRoutes");
 const inventoryRoutes = require("./routes/InventoryRoutes");
 
 const app = express();

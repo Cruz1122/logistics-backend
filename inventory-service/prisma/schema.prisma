@@ -93,10 +93,12 @@ model ProductWarehouse {
   reorderLevel    Int
   lastRestock     DateTime
   expirationDate  DateTime
-  status          String   @db.VarChar(20)
+  status          String   @db.VarChar(20)  
+  deletedAt     DateTime?  @db.Timestamp(6)  // nullable, fecha de eliminación lógica
 
   product  Product   @relation(fields: [productId], references: [id])
   warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+  ProductWarehouseMovements    ProductWarehouseMovement[]
 
   @@schema("inventory_service")
 }
@@ -117,6 +119,21 @@ model State {
   name   String @db.VarChar(100)
 
   cities City[]
+
+  @@schema("inventory_service")
+}
+
+model ProductWarehouseMovement {
+  id               String    @id @default(uuid())
+  productWarehouseId String   // FK a ProductWarehouse
+  movementType     String    @db.VarChar(50)
+  quantityMoved    Int
+  stockAfter       Int
+  timestamp        DateTime  @default(now())
+  performedById    String?   // Opcional
+  notes            String?   @db.VarChar(255)
+
+  productWarehouse ProductWarehouse @relation(fields: [productWarehouseId], references: [id])
 
   @@schema("inventory_service")
 }

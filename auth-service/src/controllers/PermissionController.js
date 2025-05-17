@@ -1,5 +1,5 @@
 const prisma = require("../config/prisma");
-
+const axios = require("axios");
 const getAllPermissions = async (req, res) => {
   try {
     const permissions = await prisma.permission.findMany();
@@ -47,6 +47,35 @@ const createPermission = async (req, res) => {
     const newPermission = await prisma.permission.create({
       data: { name, description },
     });
+
+    // Obtener todos los roles
+    const roles = await prisma.role.findMany();
+
+    // Endpoint para crear role-permission
+    const rolePermissionEndpoint = `${process.env.GATEWAY_INTERNAL_URL}/auth/role-permissions/`;
+    const authHeader = req.headers.authorization;
+
+    await Promise.all(
+      roles.map((role) =>
+        axios.post(
+          rolePermissionEndpoint,
+          {
+            roleId: role.id,
+            permissionId: newPermission.id,
+            listar: role.name.toUpperCase() === "ADMIN",
+            eliminar: role.name.toUpperCase() === "ADMIN",
+            crear: role.name.toUpperCase() === "ADMIN",
+            editar: role.name.toUpperCase() === "ADMIN",
+            descargar: role.name.toUpperCase() === "ADMIN",
+          },
+          {
+            headers: {
+              Authorization: authHeader,
+            },
+          }
+        )
+      )
+    );
 
     res.status(201).json({
       message: "Permission created successfully.",

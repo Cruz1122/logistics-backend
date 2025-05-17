@@ -2,10 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const csv = require("csv-parser");
 const prisma = require("../config/prisma");
-let pLimit;
-(async () => {
-  pLimit = (await import("p-limit")).default;
-})();
+const pLimit = require("p-limit");
 
 const logDir = path.join(__dirname, "../../logs");
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);

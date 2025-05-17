@@ -35,10 +35,14 @@ services:
     volumes:
       - ./inventory-service:/app
 
-  # orders-service:
-  #   build: ./orders-service
-  #   ports:
-  #     - "4004:4004"
+  orders-service:
+    build: ./orders-service
+    ports:
+      - "4004:4004"
+    env_file:
+      - ./.env
+    volumes:
+      - ./orders-service:/app
   
   # reports-service:
   #   build: ./reports-service

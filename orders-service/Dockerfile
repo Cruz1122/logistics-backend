@@ -6,7 +6,10 @@ COPY package*.json ./
 
 RUN npm install
 
-
 COPY . .
 
-CMD ["src/index.js"]
+RUN npx prisma generate
+
+# Comando de inicio
+CMD ["sh", "-c", "npx prisma db push && npm start"]
+

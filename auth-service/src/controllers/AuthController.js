@@ -503,8 +503,13 @@ const getUserPermissions = async (req, res) => {
       include: { permission: true }, // Incluye los detalles del permiso
     });
 
-    // Formatea los permisos para la respuesta
-    const permissions = rolePermissions.map((rp) => ({
+    // Solo incluye los permisos donde al menos uno de los flags es true
+    const permissions = rolePermissions
+      .filter(
+      (rp) =>
+        rp.listar
+      )
+      .map((rp) => ({
       permissionId: rp.permissionId,
       name: rp.permission.name,
       description: rp.permission.description,
@@ -513,7 +518,7 @@ const getUserPermissions = async (req, res) => {
       crear: rp.crear,
       editar: rp.editar,
       descargar: rp.descargar,
-    }));
+      }));
 
     res.status(200).json({
       permissions,

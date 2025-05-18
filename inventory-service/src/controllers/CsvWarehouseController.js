@@ -8,6 +8,7 @@ const ROL_GERENTE_ID = process.env.ROL_GERENTE_ID;
 const CONTRASENA_GENERICA = process.env.CONTRASENA_GENERICA;
 
 const logDir = path.join(__dirname, "../../logs");
+const logFile = path.join(logDir, "warehouses-import.log");
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
 
 const createLogStream = () => {

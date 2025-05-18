@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const authorizeRoles = require("../middlewares/Auth");
+const { authenticateJWT, authorize } = require("../middlewares/Auth");
 const {
   getRoles,
   getRoleById,
@@ -22,7 +22,12 @@ const {
  *       200:
  *         description: List of roles
  */
-router.get("/roles", authorizeRoles("admin"), getRoles);
+router.get(
+  "/roles",
+  authenticateJWT,
+  authorize("Role Management", "listar"),
+  getRoles
+);
 
 /**
  * @swagger
@@ -46,7 +51,12 @@ router.get("/roles", authorizeRoles("admin"), getRoles);
  *       404:
  *         description: Role not found
  */
-router.get("/:id", authorizeRoles("admin"), getRoleById);
+router.get(
+  "/:id",
+  authenticateJWT,
+  authorize("Role Management", "listar"),
+  getRoleById
+);
 
 /**
  * @swagger
@@ -81,7 +91,12 @@ router.get("/:id", authorizeRoles("admin"), getRoleById);
  *       404:
  *         description: Role not found
  */
-router.put("/:id", authorizeRoles("admin"), updateRole);
+router.put(
+  "/:id",
+  authenticateJWT,
+  authorize("Role Management", "editar"),
+  updateRole
+);
 
 /**
  * @swagger
@@ -103,7 +118,12 @@ router.put("/:id", authorizeRoles("admin"), updateRole);
  *       200:
  *         description: Role deleted
  */
-router.delete("/:id", authorizeRoles("admin"), deleteRole);
+router.delete(
+  "/:id",
+  authenticateJWT,
+  authorize("Role Management", "eliminar"),
+  deleteRole
+);
 
 /**
  * @swagger
@@ -133,6 +153,11 @@ router.delete("/:id", authorizeRoles("admin"), deleteRole);
  *       400:
  *         description: Invalid input
  */
-router.post("/", authorizeRoles("admin"), createRole);
+router.post(
+  "/",
+  authenticateJWT,
+  authorize("Role Management", "crear"),
+  createRole
+);
 
 module.exports = router;

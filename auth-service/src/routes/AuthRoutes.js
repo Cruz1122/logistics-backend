@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const authorizeRoles = require("../middlewares/Auth");
+const { authenticateJWT, authorize } = require("../middlewares/Auth");
 const {
   signUp,
   verifyEmail,
@@ -280,7 +280,7 @@ router.post("/reset-password", resetPassword);
  *       401:
  *         description: Incorrect current password
  */
-router.patch("/change-password", authorizeRoles(), changePassword);
+router.patch("/change-password", authenticateJWT, authorize("Account Management", "editar"), changePassword);
 
 /**
  * @swagger
@@ -307,7 +307,8 @@ router.patch("/change-password", authorizeRoles(), changePassword);
  */
 router.get(
   "/users/:userId/permissions",
-  authorizeRoles("admin"),
+  authenticateJWT,
+  authorize("Account Management", "listar"),
   getUserPermissions
 );
 

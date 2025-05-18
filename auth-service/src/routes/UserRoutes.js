@@ -7,6 +7,7 @@ const {
   updateUser,
   deleteUser,
   createUser,
+  getUserByEmail,
 } = require("../controllers/UserController");
 
 /**
@@ -47,6 +48,7 @@ router.get("/users", authorizeRoles("admin"), getAllUsers);
  *         description: User not found
  */
 router.get("/:id", authorizeRoles("admin"), getUserById);
+router.get("/email/:email", authorizeRoles("admin"), getUserByEmail);
 
 /**
  * @swagger

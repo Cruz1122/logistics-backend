@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const bcrypt = require("bcrypt");
+const { get } = require("../routes/AuthRoutes");
 
 const capitalize = (str) => {
   if (!str) return "";
@@ -35,6 +36,23 @@ const getUserById = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    res.json(user);
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ error: "Failed to fetch user" });
+  }
+};
+
+const getUserByEmail = async (req, res) => {
+  const email = req.params.email;
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { role: true },
+    });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
     res.json(user);
   } catch (error) {
     console.error("Error fetching user:", error);
@@ -143,4 +161,5 @@ module.exports = {
   updateUser,
   deleteUser,
   createUser,
+  getUserByEmail,
 };

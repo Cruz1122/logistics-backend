@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const csv = require("csv-parser");
+const xlsx = require("xlsx");
 const axios = require("axios");
 const prisma = require("../config/prisma");
 
@@ -28,7 +29,7 @@ const normalizeString = (str) =>
 
 const BATCH_SIZE = 500;
 
-async function tryCreateUser(payloadUser, appendLog) {
+async function tryCreateUser(payloadUser, log) {
   try {
     const response = await axios.post(
       "http://auth-service:4001/users/",
@@ -39,23 +40,21 @@ async function tryCreateUser(payloadUser, appendLog) {
         },
       }
     );
+    log(`► Gerente creado: ${response.data.user?.id} - ${payloadUser.email}`);
     return response.data.user?.id;
   } catch (err) {
     if (
       err.response?.data?.error === "Email already in use." ||
       err.response?.status === 409
     ) {
-      // Email duplicado
       return null;
     }
-    appendLog(
-      `[${new Date().toISOString()}] Error creando usuario: ${err.message}`
-    );
+    log(`Error creando usuario: ${err.message}`);
     throw err;
   }
 }
 
-async function getOrCreateUser(payloadUser, appendLog) {
+async function getOrCreateUser(payloadUser, log) {
   try {
     const existingUserResponse = await axios.get(
       `http://auth-service:4001/users/email/${payloadUser.email}`,
@@ -65,35 +64,27 @@ async function getOrCreateUser(payloadUser, appendLog) {
         },
       }
     );
-    if (existingUserResponse.data.user?.id) {
-      return existingUserResponse.data.user.id;
+    if (existingUserResponse.data.id) {
+      log(
+        `→ Gerente encontrado: ${payloadUser.email}. Se asignará a su respectivo almacén.`
+      );
+      return existingUserResponse.data.id;
     }
   } catch {
-    // No existe, continuar a crear
+    log(`Gerente no encontrado, intentando crear: ${payloadUser.email}`);
   }
 
-  let baseEmail = payloadUser.email.split("@")[0];
-  let domain = payloadUser.email.split("@")[1] || "example.com";
-
-  for (let i = 0; i < 10; i++) {
-    let tryEmail = i === 0 ? payloadUser.email : `${baseEmail}${i}@${domain}`;
-    let tryPayload = { ...payloadUser, email: tryEmail };
-    let userId = await tryCreateUser(tryPayload, appendLog);
+  try {
+    const userId = await tryCreateUser(payloadUser, log);
     if (userId) {
-      if (i > 0) {
-        appendLog(
-          `[${new Date().toISOString()}] Email duplicado, se asignó correo alternativo: ${tryEmail}`
-        );
-      }
       return userId;
     }
+  } catch (err) {
+    log(`Error creando gerente: ${err.message}`);
+    throw err;
   }
 
-  appendLog(
-    `[${new Date().toISOString()}] No se pudo crear usuario con email base: ${
-      payloadUser.email
-    }`
-  );
+  log(`No se pudo crear gerente con email base: ${payloadUser.email}`);
   return null;
 }
 
@@ -107,28 +98,42 @@ const uploadWarehousesWithManagers = async (req, res) => {
     console.log(timestamp + msg);
     logStream.write(timestamp + msg + "\n");
   };
-  const appendLog = (msg) => {
-    console.log(msg);
-    logStream.write(msg + "\n");
-  };
 
   try {
-    log("Inicio de lectura del archivo CSV.");
-    await new Promise((resolve, reject) => {
-      fs.createReadStream(filePath, { encoding: "latin1" })
-        .pipe(csv({ separator: ";" }))
-        .on("data", (row) => results.push(row))
-        .on("end", () => {
-          log(
-            `Archivo CSV leído completamente. Filas leídas: ${results.length}`
-          );
-          resolve();
-        })
-        .on("error", (err) => {
-          log(`Error leyendo CSV: ${err.message}`);
-          reject(err);
-        });
-    });
+    log("Inicio de lectura del archivo.");
+
+    const ext = path.extname(filePath).toLowerCase();
+
+    if (ext === ".csv") {
+      await new Promise((resolve, reject) => {
+        fs.createReadStream(filePath, { encoding: "latin1" })
+          .pipe(csv({ separator: ";" }))
+          .on("data", (row) => results.push(row))
+          .on("end", () => {
+            log(
+              `→ Archivo CSV leído completamente. Filas leídas: ${results.length}`
+            );
+            resolve();
+          })
+          .on("error", (err) => {
+            log(`Error leyendo CSV: ${err.message}`);
+            reject(err);
+          });
+      });
+    } else if (ext === ".xls" || ext === ".xlsx") {
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(sheet, { defval: "" });
+      data.forEach((row) => results.push(row));
+      log(
+        `→ Archivo Excel leído completamente. Filas leídas: ${results.length}`
+      );
+    } else {
+      throw new Error(
+        "Formato de archivo no soportado. Solo CSV y Excel (.xls, .xlsx)"
+      );
+    }
 
     log("Cargando ciudades y estados...");
     const allCities = await prisma.city.findMany({ include: { state: true } });
@@ -138,7 +143,7 @@ const uploadWarehousesWithManagers = async (req, res) => {
         c,
       ])
     );
-    log(`  → ${allCities.length} ciudades cargadas`);
+    log(`→ ${allCities.length} ciudades cargadas`);
 
     let totalWarehousesCreated = 0;
     let totalWarehousesUpdated = 0;
@@ -149,17 +154,30 @@ const uploadWarehousesWithManagers = async (req, res) => {
       const batch = results.slice(i, i + BATCH_SIZE);
       log(`Procesando batch de registros ${i + 1} a ${i + batch.length}`);
 
-      // Procesar cada fila del batch secuencialmente para evitar sobrecarga API
       for (const row of batch) {
-        const ciudadNombre = normalizeString(row.ciudad);
-        const departamentoNombre = normalizeString(row.departamento);
-        const idAlmacen = row.id_almacen?.trim() || `ID_DESCONOCIDO_${i}`;
-        const nombreAlmacen = row.nombre_almacen?.trim() || "NombreDesconocido";
+        const ciudadRaw = row.ciudad ?? "";
+        const departamentoRaw = row.departamento ?? "";
+        const idAlmacenRaw = row.id_almacen ?? `ID_DESCONOCIDO_${i}`;
+        const nombreAlmacenRaw = row.nombre_almacen ?? "NombreDesconocido";
+        const gerenteRaw = row.gerente ?? "";
+        const emailRaw = row.email ?? "";
+        const telefonoRaw = row.telefono ?? "";
+        const direccionRaw = row.direccion ?? "";
+        const codigoPostalRaw = row.codigo_postal ?? "00000";
+        const latitudRaw = row.latitud ?? null;
+        const longitudRaw = row.longitud ?? null;
+        const capacidadM2Raw = row.capacidad_m2 ?? null;
+        const estadoRaw = row.estado ?? "activo";
+
+        const ciudadNombre = normalizeString(String(ciudadRaw));
+        const departamentoNombre = normalizeString(String(departamentoRaw));
+        const idAlmacen = String(idAlmacenRaw).trim();
+        const nombreAlmacen = String(nombreAlmacenRaw).trim();
 
         if (!ciudadNombre || !departamentoNombre) {
           const msg = `Error almacén "${idAlmacen}" - "${nombreAlmacen}": Ciudad o departamento inválidos`;
-          appendLog(msg);
-          errors.push({ ciudad: row.ciudad, mensaje: msg });
+          log(msg);
+          errors.push({ ciudad: ciudadRaw, mensaje: msg });
           continue;
         }
 
@@ -167,35 +185,35 @@ const uploadWarehousesWithManagers = async (req, res) => {
           `${ciudadNombre}|${departamentoNombre}`
         );
         if (!ciudadEncontrada) {
-          const msg = `Error almacén "${idAlmacen}" - "${nombreAlmacen}": Ciudad "${row.ciudad}" con departamento "${row.departamento}" no existe en la base de datos`;
-          appendLog(msg);
+          const msg = `Error almacén "${idAlmacen}" - "${nombreAlmacen}": Ciudad "${ciudadRaw}" con departamento "${departamentoRaw}" no existe en la base de datos`;
+          log(msg);
           errors.push({
-            ciudad: row.ciudad,
-            departamento: row.departamento,
+            ciudad: ciudadRaw,
+            departamento: departamentoRaw,
             mensaje: msg,
           });
           continue;
         }
 
-        const nombres = row.gerente?.trim().split(" ") || [];
+        const nombres = String(gerenteRaw).trim().split(" ");
         const name = nombres[0] || "SinNombre";
         const lastName = nombres.slice(1).join(" ") || "Gerente";
 
         const payloadUser = {
-          email: row.email.trim(),
+          email: String(emailRaw).trim(),
           password: CONTRASENA_GENERICA,
           name,
           lastName,
-          phone: String(row.telefono),
+          phone: String(telefonoRaw),
           roleId: ROL_GERENTE_ID,
         };
 
         let userId = null;
         try {
-          userId = await getOrCreateUser(payloadUser, appendLog);
+          userId = await getOrCreateUser(payloadUser, log);
           if (!userId) {
             const msg = `No se pudo crear o asignar usuario gerente para almacén "${idAlmacen}" - "${nombreAlmacen}" con base en email: ${payloadUser.email}`;
-            appendLog(msg);
+            log(msg);
             errors.push({ email: payloadUser.email, mensaje: msg });
             continue;
           } else {
@@ -203,7 +221,7 @@ const uploadWarehousesWithManagers = async (req, res) => {
           }
         } catch (err) {
           const msg = `Error inesperado creando usuario gerente para almacén "${idAlmacen}" - "${nombreAlmacen}": ${err.message}`;
-          appendLog(msg);
+          log(msg);
           errors.push({ email: payloadUser.email, mensaje: msg });
           continue;
         }
@@ -215,12 +233,13 @@ const uploadWarehousesWithManagers = async (req, res) => {
 
           const dataToSave = {
             name: nombreAlmacen,
-            address: row.direccion?.trim() || "SinDireccion",
-            postalCode: String(row.codigo_postal || "00000"),
-            latitude: parseFloat(row.latitud),
-            longitude: parseFloat(row.longitud),
-            capacityM2: parseFloat(row.capacidad_m2),
-            status: row.estado?.trim() || "activo",
+            address: String(direccionRaw).trim() || "SinDireccion",
+            postalCode: String(codigoPostalRaw),
+            latitude: latitudRaw !== null ? parseFloat(latitudRaw) : null,
+            longitude: longitudRaw !== null ? parseFloat(longitudRaw) : null,
+            capacityM2:
+              capacidadM2Raw !== null ? parseFloat(capacidadM2Raw) : null,
+            status: String(estadoRaw).trim() || "activo",
             cityId: ciudadEncontrada.id,
             managerId: userId,
           };
@@ -230,16 +249,18 @@ const uploadWarehousesWithManagers = async (req, res) => {
               where: { id: idAlmacen },
               data: dataToSave,
             });
+            log(`→ Almacén actualizado: "${idAlmacen}" - "${nombreAlmacen}"`);
             totalWarehousesUpdated++;
           } else {
             await prisma.warehouse.create({
               data: { id: idAlmacen, ...dataToSave },
             });
+            log(`→ Almacén creado: "${idAlmacen}" - "${nombreAlmacen}"`);
             totalWarehousesCreated++;
           }
         } catch (err) {
           const msg = `Error creando o actualizando almacén "${idAlmacen}" - "${nombreAlmacen}": ${err.message}`;
-          appendLog(msg);
+          log(msg);
           errors.push({ id_almacen: idAlmacen, mensaje: msg });
         }
       }
@@ -260,7 +281,7 @@ const uploadWarehousesWithManagers = async (req, res) => {
     });
   } catch (error) {
     const msg = `Error general importando almacenes: ${error.message}`;
-    fs.appendFileSync(logFile, msg + "\n", "utf8");
+    fs.appendFileSync(path.join(logDir, "error.log"), msg + "\n", "utf8");
     res
       .status(500)
       .json({ error: "Fallo importación almacenes", detalles: msg });

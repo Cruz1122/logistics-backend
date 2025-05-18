@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const csv = require("csv-parser");
+const xlsx = require("xlsx");
 const prisma = require("../config/prisma");
 let pLimit;
 (async () => {
@@ -22,7 +23,7 @@ const normalizeDecimal = (val) => parseFloat(String(val).replace(",", "."));
 
 const parseCsvDate = (rawDate) => {
   if (!rawDate) return null;
-  const clean = rawDate.trim().replace(/[\u200B-\u200D\uFEFF]/g, "");
+  const clean = (String(rawDate ?? "")).trim().replace(/[\u200B-\u200D\uFEFF]/g, "");
   const [day, month, year] = clean.split("/");
   if (!day || !month || !year) return null;
   const isoFormat = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
@@ -44,24 +45,44 @@ const uploadProductCSV = async (req, res) => {
   };
 
   try {
-    log("Inicio de lectura del archivo CSV.");
-    await new Promise((resolve, reject) => {
-      fs.createReadStream(filePath, { encoding: "latin1" })
-        .pipe(csv({ separator: ";" }))
-        .on("data", (row) => results.push(row))
-        .on("end", () => {
-          log(
-            `Archivo CSV leído completamente. Filas leídas: ${results.length}`
-          );
-          resolve();
-        })
-        .on("error", (err) => {
-          log(`Error leyendo CSV: ${err.message}`);
-          reject(err);
-        });
-    });
+    log("Inicio de lectura del archivo.");
 
-    // Cargas previas (warehouses, suppliers, categories, products, productWarehouse)
+    // Detectar extensión
+    const ext = path.extname(filePath).toLowerCase();
+
+    if (ext === ".csv") {
+      // Leer CSV como antes
+      await new Promise((resolve, reject) => {
+        fs.createReadStream(filePath, { encoding: "latin1" })
+          .pipe(csv({ separator: ";" }))
+          .on("data", (row) => results.push(row))
+          .on("end", () => {
+            log(
+              `Archivo CSV leído completamente. Filas leídas: ${results.length}`
+            );
+            resolve();
+          })
+          .on("error", (err) => {
+            log(`Error leyendo CSV: ${err.message}`);
+            reject(err);
+          });
+      });
+    } else if (ext === ".xls" || ext === ".xlsx") {
+      // Leer Excel con xlsx
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(sheet, { defval: "" });
+      data.forEach((row) => results.push(row));
+      log(`Archivo Excel leído completamente. Filas leídas: ${results.length}`);
+    } else {
+      throw new Error(
+        "Formato de archivo no soportado. Solo CSV y Excel (.xls, .xlsx)"
+      );
+    }
+
+    // Aquí empieza tu código original para procesar 'results'
+
     log("Cargando almacenes...");
     const allWarehouses = await prisma.warehouse.findMany();
     const warehouseMap = new Map(allWarehouses.map((w) => [w.id, w]));
@@ -69,7 +90,7 @@ const uploadProductCSV = async (req, res) => {
 
     log("Cargando proveedores existentes...");
     const supplierIds = [
-      ...new Set(results.map((r) => r.id_proveedor?.trim()).filter(Boolean)),
+      ...new Set(results.map((r) => (String(r.id_proveedor ?? "")).trim()).filter(Boolean)),
     ];
     const existingSuppliers = await prisma.supplier.findMany({
       where: { id: { in: supplierIds } },
@@ -100,7 +121,9 @@ const uploadProductCSV = async (req, res) => {
     log("Cargando categorías existentes...");
     const categoryNames = [
       ...new Set(
-        results.map((r) => r.categoria?.trim().toLowerCase()).filter(Boolean)
+      results
+        .map((r) => (String(r.categoria ?? "")).trim().toLowerCase())
+        .filter(Boolean)
       ),
     ];
     const existingCategories = await prisma.category.findMany({
@@ -132,7 +155,7 @@ const uploadProductCSV = async (req, res) => {
 
     log("Cargando productos existentes...");
     const productIds = [
-      ...new Set(results.map((r) => r.id_producto?.trim()).filter(Boolean)),
+      ...new Set(results.map((r) => (String(r.id_producto ?? "")).trim()).filter(Boolean)),
     ];
     const existingProducts = await prisma.product.findMany({
       where: { id: { in: productIds } },
@@ -143,8 +166,8 @@ const uploadProductCSV = async (req, res) => {
     log("Cargando relaciones productWarehouse existentes...");
     const productWarehouseKeys = results
       .map((r) => ({
-        productId: r.id_producto?.trim(),
-        warehouseId: r.id_almacen?.trim(),
+      productId: (String(r.id_producto ?? "")).trim(),
+      warehouseId: (String(r.id_almacen ?? "")).trim(),
       }))
       .filter(({ productId, warehouseId }) => productId && warehouseId);
     const uniquePWKeys = Array.from(
@@ -168,8 +191,8 @@ const uploadProductCSV = async (req, res) => {
       new Set(
         results
           .map((r) => {
-            const pid = r.id_producto?.trim();
-            const sid = r.id_proveedor?.trim();
+            const pid = (String(r.id_producto ?? "")).trim();
+            const sid = (String(r.id_proveedor ?? "")).trim();
             return pid && sid ? `${pid}||${sid}` : null;
           })
           .filter(Boolean)
@@ -211,8 +234,8 @@ const uploadProductCSV = async (req, res) => {
       const pwsToUpdate = [];
 
       for (const row of batch) {
-        const productId = row.id_producto?.trim();
-        const warehouseId = row.id_almacen?.trim();
+        const productId = (String(row.id_producto ?? "")).trim();
+        const warehouseId = (String(row.id_almacen ?? "")).trim();
 
         // Validar existencia de IDs
         if (!productId || !warehouseId || !warehouseMap.has(warehouseId)) {
@@ -221,9 +244,9 @@ const uploadProductCSV = async (req, res) => {
         }
 
         // Validar y obtener supplier y category
-        const supplierId = row.id_proveedor?.trim();
+        const supplierId = (String(row.id_proveedor ?? "")).trim();
         const supplier = supplierMap.get(supplierId) || null;
-        const catName = row.categoria?.trim().toLowerCase();
+        const catName = (String(row.categoria ?? "")).trim().toLowerCase();
         const category = categoryMap.get(catName) || null;
 
         if (supplierId && !supplier) {
@@ -238,7 +261,7 @@ const uploadProductCSV = async (req, res) => {
         // Si el producto no existe, VALIDAR TODOS LOS CAMPOS REQUERIDOS
         let product = productMap.get(productId);
         if (!product) {
-          const name = row.nombre_producto?.trim();
+          const name = (String(row.nombre_producto ?? "")).trim();
           const priceRaw = row.precio_unitario;
           const weightRaw = row.peso_kg;
           if (!name || priceRaw == null || weightRaw == null) {
@@ -254,19 +277,19 @@ const uploadProductCSV = async (req, res) => {
             );
           }
 
-          newProductsData.push({
-            id: productId,
-            name,
-            description: row.descripcion?.trim() || "",
+            newProductsData.push({
+            id: (String(productId ?? "")).trim(),
+            name: (String(name ?? "")).trim(),
+            description: (String(row.descripcion ?? "")).trim(),
             categoryId: category?.id,
-            sku: row.sku?.trim() || "",
-            barcode: row.codigo_barras?.trim() || "",
+            sku: (String(row.sku ?? "")).trim(),
+            barcode: (String(row.codigo_barras ?? "")).trim(),
             unitPrice,
             weightKg,
-            dimensions: row.dimensiones_cm?.trim() || "",
-            isFragile: row.es_fragil === "true",
-            needsCooling: row.requiere_refrigeracion === "true",
-          });
+            dimensions: (String(row.dimensiones_cm ?? "")).trim(),
+            isFragile: (String(row.es_fragil ?? "")).trim() === "true",
+            needsCooling: (String(row.requiere_refrigeracion ?? "")).trim() === "true",
+            });
         }
 
         // Preparar productWarehouse create/update
@@ -277,7 +300,7 @@ const uploadProductCSV = async (req, res) => {
         const lastRestock = parseCsvDate(row.ultima_reposicion) || new Date();
         const expDate =
           parseCsvDate(row.fecha_vencimiento) || new Date("2100-01-01");
-        const status = row.estado?.trim() || "";
+        const status = (String(row.estado ?? "")).trim();
 
         if (existPW) {
           pwsToUpdate.push({

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const authorizeRoles = require("../middlewares/Auth");
+const { authenticateJWT, authorize } = require("../middlewares/Auth");
 const {
   getAllRolePermissions,
   createRolePermission,
@@ -24,7 +24,12 @@ const {
  *       200:
  *         description: List of role-permission relations retrieved successfully
  */
-router.get("/role-permissions", authorizeRoles("admin"), getAllRolePermissions);
+router.get(
+  "/role-permissions",
+  authenticateJWT,
+  authorize("Role-Permission Management", "listar"),
+  getAllRolePermissions
+);
 
 /**
  * @swagger
@@ -48,7 +53,12 @@ router.get("/role-permissions", authorizeRoles("admin"), getAllRolePermissions);
  *       404:
  *         description: Role-permission relation not found
  */
-router.get("/:id", authorizeRoles("admin"), getRolePermissionById);
+router.get(
+  "/:id",
+  authenticateJWT,
+  authorize("Role-Permission Management", "listar"),
+  getRolePermissionById
+);
 
 /**
  * @swagger
@@ -96,7 +106,12 @@ router.get("/:id", authorizeRoles("admin"), getRolePermissionById);
  *       400:
  *         description: Invalid input
  */
-router.post("/", authorizeRoles("admin"), createRolePermission);
+router.post(
+  "/",
+  authenticateJWT,
+  authorize("Role-Permission Management", "crear"),
+  createRolePermission
+);
 
 /**
  * @swagger
@@ -142,7 +157,12 @@ router.post("/", authorizeRoles("admin"), createRolePermission);
  *       404:
  *         description: Role-permission relation not found
  */
-router.put("/:id", authorizeRoles("admin"), updateRolePermission);
+router.put(
+  "/:id",
+  authenticateJWT,
+  authorize("Role-Permission Management", "editar"),
+  updateRolePermission
+);
 
 /**
  * @swagger
@@ -166,6 +186,11 @@ router.put("/:id", authorizeRoles("admin"), updateRolePermission);
  *       404:
  *         description: Role-permission relation not found
  */
-router.delete("/:id", authorizeRoles("admin"), deleteRolePermission);
+router.delete(
+  "/:id",
+  authenticateJWT,
+  authorize("Role-Permission Management", "eliminar"),
+  deleteRolePermission
+);
 
 module.exports = router;

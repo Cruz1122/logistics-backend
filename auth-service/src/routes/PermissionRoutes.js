@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const authorizeRoles = require("../middlewares/Auth");
+const { authenticateJWT, authorize } = require("../middlewares/Auth");
 const {
   getAllPermissions,
   getPermissionById,
@@ -24,7 +24,8 @@ const {
  */
 router.get(
   "/permissions",
-  authorizeRoles("admin", "manager"),
+  authenticateJWT,
+  authorize("Permissions Management", "listar"),
   getAllPermissions
 );
 
@@ -50,7 +51,12 @@ router.get(
  *       404:
  *         description: Permission not found
  */
-router.get("/:id", authorizeRoles("admin", "manager"), getPermissionById);
+router.get(
+  "/:id",
+  authenticateJWT,
+  authorize("Permissions Management", "listar"),
+  getPermissionById
+);
 
 /**
  * @swagger
@@ -82,7 +88,12 @@ router.get("/:id", authorizeRoles("admin", "manager"), getPermissionById);
  *       400:
  *         description: Invalid input
  */
-router.post("/", authorizeRoles("admin"), createPermission);
+router.post(
+  "/",
+  authenticateJWT,
+  authorize("Permissions Management", "crear"),
+  createPermission
+);
 
 /**
  * @swagger
@@ -119,7 +130,12 @@ router.post("/", authorizeRoles("admin"), createPermission);
  *       404:
  *         description: Permission not found
  */
-router.put("/:id", authorizeRoles("admin"), updatePermission);
+router.put(
+  "/:id",
+  authenticateJWT,
+  authorize("Permissions Management", "editar"),
+  updatePermission
+);
 
 /**
  * @swagger
@@ -143,6 +159,11 @@ router.put("/:id", authorizeRoles("admin"), updatePermission);
  *       404:
  *         description: Permission not found
  */
-router.delete("/:id", authorizeRoles("admin"), deletePermission);
+router.delete(
+  "/:id",
+  authenticateJWT,
+  authorize("Permissions Management", "eliminar"),
+  deletePermission
+);
 
 module.exports = router;

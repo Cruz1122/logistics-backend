@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const authorizeRoles = require("../middlewares/Auth");
+const { authenticateJWT, authorize } = require("../middlewares/Auth");
 const {
   getAllUsers,
   getUserById,
@@ -23,7 +23,12 @@ const {
  *       200:
  *         description: List of users
  */
-router.get("/users", authorizeRoles("admin"), getAllUsers);
+router.get(
+  "/users",
+  authenticateJWT,
+  authorize("User Management", "listar"),
+  getAllUsers
+);
 
 /**
  * @swagger
@@ -47,8 +52,41 @@ router.get("/users", authorizeRoles("admin"), getAllUsers);
  *       404:
  *         description: User not found
  */
-router.get("/:id", authorizeRoles("admin"), getUserById);
-router.get("/email/:email", authorizeRoles("admin"), getUserByEmail);
+router.get(
+  "/:id",
+  authenticateJWT,
+  authorize("User Management", "listar"),
+  getUserById
+);
+
+/**
+ * @swagger
+ * /users/email/{email}:
+ *  get:
+ *    summary: Get user by email
+ *   tags: [Users]
+ *   security:
+ *     - bearerAuth: []
+ *  description: Role allowed is admin.
+ *  parameters:
+ *   - in: path
+ *    name: email
+ *   required: true
+ *   description: Email of the user to retrieve
+ *   schema:
+ *    type: string
+ *  responses:
+ *   200:
+ *    description: User found
+ *  404:
+ *   description: User not found
+ * */
+router.get(
+  "/email/:email",
+  authenticateJWT,
+  authorize("User Management", "listar"),
+  getUserByEmail
+);
 
 /**
  * @swagger
@@ -87,7 +125,12 @@ router.get("/email/:email", authorizeRoles("admin"), getUserByEmail);
  *       404:
  *         description: User not found
  */
-router.put("/:id", authorizeRoles("admin"), updateUser);
+router.put(
+  "/:id",
+  authenticateJWT,
+  authorize("User Management", "editar"),
+  updateUser
+);
 
 /**
  * @swagger
@@ -109,7 +152,12 @@ router.put("/:id", authorizeRoles("admin"), updateUser);
  *       200:
  *         description: User deleted
  */
-router.delete("/:id", authorizeRoles("admin"), deleteUser);
+router.delete(
+  "/:id",
+  authenticateJWT,
+  authorize("User Management", "eliminar"),
+  deleteUser
+);
 
 /**
  * @swagger
@@ -152,6 +200,11 @@ router.delete("/:id", authorizeRoles("admin"), deleteUser);
  *       400:
  *         description: Invalid input
  */
-router.post("/", authorizeRoles("admin"), createUser);
+router.post(
+  "/",
+  authenticateJWT,
+  authorize("User Management", "crear"),
+  createUser
+);
 
 module.exports = router;

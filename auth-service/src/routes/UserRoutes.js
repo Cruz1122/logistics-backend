@@ -59,28 +59,6 @@ router.get(
   getUserById
 );
 
-/**
- * @swagger
- * /users/email/{email}:
- *  get:
- *    summary: Get user by email
- *   tags: [Users]
- *   security:
- *     - bearerAuth: []
- *  description: Role allowed is admin.
- *  parameters:
- *   - in: path
- *    name: email
- *   required: true
- *   description: Email of the user to retrieve
- *   schema:
- *    type: string
- *  responses:
- *   200:
- *    description: User found
- *  404:
- *   description: User not found
- * */
 router.get(
   "/email/:email",
   authenticateJWT,

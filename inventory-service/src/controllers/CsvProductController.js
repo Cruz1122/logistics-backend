@@ -2,7 +2,10 @@ const fs = require("fs");
 const path = require("path");
 const csv = require("csv-parser");
 const xlsx = require("xlsx");
+const axios = require("axios");
 const prisma = require("../config/prisma");
+const { sendStockEmail } = require("../utils/mailer");
+
 let pLimit;
 (async () => {
   pLimit = (await import("p-limit")).default;
@@ -20,7 +23,6 @@ const createLogStream = () => {
 };
 
 const normalizeDecimal = (val) => parseFloat(String(val).replace(",", "."));
-
 const parseCsvDate = (rawDate) => {
   if (!rawDate) return null;
   const clean = String(rawDate ?? "")
@@ -36,7 +38,6 @@ const parseCsvDate = (rawDate) => {
 const BATCH_SIZE = 500;
 
 // --- Helpers ---
-
 async function readFile(filePath, log) {
   const results = [];
   const ext = path.extname(filePath).toLowerCase();
@@ -287,6 +288,8 @@ function buildPWUpdate(existPW, row, lastRestock, expDate, status) {
   const reorderLvl = parseInt(row.nivel_reorden) || 0;
   return {
     id: existPW.id,
+    productId: existPW.productId,
+    warehouseId: existPW.warehouseId,
     stockQuantity: stockQty,
     reorderLevel: reorderLvl,
     lastRestock,
@@ -296,7 +299,14 @@ function buildPWUpdate(existPW, row, lastRestock, expDate, status) {
   };
 }
 
-function buildPWCreate(productId, warehouseId, row, lastRestock, expDate, status) {
+function buildPWCreate(
+  productId,
+  warehouseId,
+  row,
+  lastRestock,
+  expDate,
+  status
+) {
   const stockQty = parseInt(row.cantidad_stock) || 0;
   const reorderLvl = parseInt(row.nivel_reorden) || 0;
   return {
@@ -334,7 +344,9 @@ async function processBatch({
 
     const supplierId = String(row.id_proveedor ?? "").trim();
     const supplier = supplierMap.get(supplierId) || null;
-    const catName = String(row.categoria ?? "").trim().toLowerCase();
+    const catName = String(row.categoria ?? "")
+      .trim()
+      .toLowerCase();
     const category = categoryMap.get(catName) || null;
 
     if (!isValidSupplier(supplierId, supplier, productId, log)) continue;
@@ -348,13 +360,18 @@ async function processBatch({
     const pwKey = `${productId}||${warehouseId}`;
     const existPW = pwMap.get(pwKey);
     const lastRestock = parseCsvDate(row.ultima_reposicion) || new Date();
-    const expDate = parseCsvDate(row.fecha_vencimiento) || new Date("2100-01-01");
+    const expDate =
+      parseCsvDate(row.fecha_vencimiento) || new Date("2100-01-01");
     const status = String(row.estado ?? "").trim();
 
     if (existPW) {
-      pwsToUpdate.push(buildPWUpdate(existPW, row, lastRestock, expDate, status));
+      pwsToUpdate.push(
+        buildPWUpdate(existPW, row, lastRestock, expDate, status)
+      );
     } else {
-      pwsToCreate.push(buildPWCreate(productId, warehouseId, row, lastRestock, expDate, status));
+      pwsToCreate.push(
+        buildPWCreate(productId, warehouseId, row, lastRestock, expDate, status)
+      );
     }
 
     if (supplier && !psSet.has(`${productId}||${supplier.id}`)) {
@@ -372,9 +389,84 @@ async function processBatch({
   };
 }
 
-// --- Función principal ---
+// --- Función principal de procesamiento por batches ---
+// Helper for updating existing product warehouses
+async function updateProductWarehouses(pwsToUpdate, prisma, log, movementsToCreate, lowStockAlerts, totalPWUpdated) {
+  for (const pw of pwsToUpdate) {
+    log(`  ► Actualizando PW id=${pw.id}`);
+    await prisma.productWarehouse.update({
+      where: { id: pw.id },
+      data: {
+        stockQuantity: pw.stockQuantity,
+        reorderLevel: pw.reorderLevel,
+        lastRestock: pw.lastRestock,
+        expirationDate: pw.expirationDate,
+        status: pw.status,
+      },
+    });
+    totalPWUpdated.count++;
+    if (pw.stockQuantity !== pw.prevStock) {
+      movementsToCreate.push({
+        productWarehouseId: pw.id,
+        movementType: "UPDATE",
+        quantityMoved: pw.stockQuantity - pw.prevStock,
+        stockAfter: pw.stockQuantity,
+        notes: "Actualización por carga masiva",
+      });
+    }
+    // Alerta stock bajo si aplica
+    if (pw.reorderLevel && pw.stockQuantity <= pw.reorderLevel) {
+      lowStockAlerts.push({
+        productId: pw.productId,
+        warehouseId: pw.warehouseId,
+        stockQuantity: pw.stockQuantity,
+        reorderLevel: pw.reorderLevel,
+      });
+    }
+  }
+}
 
-const processBatches = async ({
+// Helper for creating new product warehouses
+async function createProductWarehouses(pwsToCreate, prisma, log, pwMap, movementsToCreate, lowStockAlerts, totalPWCreated) {
+  if (pwsToCreate.length) {
+    log(`  ► Creando ${pwsToCreate.length} PWs nuevas`);
+    await prisma.productWarehouse.createMany({
+      data: pwsToCreate,
+      skipDuplicates: true,
+    });
+    totalPWCreated.count += pwsToCreate.length;
+
+    const createdPWs = await prisma.productWarehouse.findMany({
+      where: {
+        OR: pwsToCreate.map(({ productId, warehouseId }) => ({
+          productId,
+          warehouseId,
+        })),
+      },
+    });
+    createdPWs.forEach((pw) => {
+      movementsToCreate.push({
+        productWarehouseId: pw.id,
+        movementType: "CREATION",
+        quantityMoved: pw.stockQuantity,
+        stockAfter: pw.stockQuantity,
+        notes: "Creación por carga masiva",
+      });
+      pwMap.set(`${pw.productId}||${pw.warehouseId}`, pw);
+      // Alerta stock bajo si aplica
+      if (pw.reorderLevel && pw.stockQuantity <= pw.reorderLevel) {
+        lowStockAlerts.push({
+          productId: pw.productId,
+          warehouseId: pw.warehouseId,
+          stockQuantity: pw.stockQuantity,
+          reorderLevel: pw.reorderLevel,
+        });
+      }
+    });
+  }
+}
+
+async function processBatches({
   results,
   warehouseMap,
   supplierMap,
@@ -385,10 +477,11 @@ const processBatches = async ({
   log,
   prisma,
   BATCH_SIZE,
-}) => {
+  lowStockAlerts,
+}) {
   let totalProductsCreated = 0;
-  let totalPWCreated = 0;
-  let totalPWUpdated = 0;
+  let totalPWCreated = { count: 0 };
+  let totalPWUpdated = { count: 0 };
   let totalPSCreated = 0;
   const movementsToCreate = [];
 
@@ -424,58 +517,25 @@ const processBatches = async ({
     }
 
     // Actualizar PWs existentes
-    for (const pw of pwsToUpdate) {
-      log(`  ► Actualizando PW id=${pw.id}`);
-      await prisma.productWarehouse.update({
-        where: { id: pw.id },
-        data: {
-          stockQuantity: pw.stockQuantity,
-          reorderLevel: pw.reorderLevel,
-          lastRestock: pw.lastRestock,
-          expirationDate: pw.expirationDate,
-          status: pw.status,
-        },
-      });
-      totalPWUpdated++;
-      if (pw.stockQuantity !== pw.prevStock) {
-        movementsToCreate.push({
-          productWarehouseId: pw.id,
-          movementType: "UPDATE",
-          quantityMoved: pw.stockQuantity - pw.prevStock,
-          stockAfter: pw.stockQuantity,
-          notes: "Actualización por carga masiva",
-        });
-      }
-    }
+    await updateProductWarehouses(
+      pwsToUpdate,
+      prisma,
+      log,
+      movementsToCreate,
+      lowStockAlerts,
+      totalPWUpdated
+    );
 
     // Crear PWs nuevas
-    if (pwsToCreate.length) {
-      log(`  ► Creando ${pwsToCreate.length} PWs nuevas`);
-      await prisma.productWarehouse.createMany({
-        data: pwsToCreate,
-        skipDuplicates: true,
-      });
-      totalPWCreated += pwsToCreate.length;
-
-      const createdPWs = await prisma.productWarehouse.findMany({
-        where: {
-          OR: pwsToCreate.map(({ productId, warehouseId }) => ({
-            productId,
-            warehouseId,
-          })),
-        },
-      });
-      createdPWs.forEach((pw) => {
-        movementsToCreate.push({
-          productWarehouseId: pw.id,
-          movementType: "CREATION",
-          quantityMoved: pw.stockQuantity,
-          stockAfter: pw.stockQuantity,
-          notes: "Creación por carga masiva",
-        });
-        pwMap.set(`${pw.productId}||${pw.warehouseId}`, pw);
-      });
-    }
+    await createProductWarehouses(
+      pwsToCreate,
+      prisma,
+      log,
+      pwMap,
+      movementsToCreate,
+      lowStockAlerts,
+      totalPWCreated
+    );
 
     // Crear relaciones productSupplier nuevas
     if (productSupplierToCreate.length) {
@@ -493,17 +553,18 @@ const processBatches = async ({
 
   return {
     totalProductsCreated,
-    totalPWCreated,
-    totalPWUpdated,
+    totalPWCreated: totalPWCreated.count,
+    totalPWUpdated: totalPWUpdated.count,
     totalPSCreated,
     movementsToCreate,
   };
-};
+}
 
+// --- Endpoint de subida e importación ---
 const uploadProductCSV = async (req, res) => {
   const filePath = req.file.path;
+  const lowStockAlerts = [];
   const logStream = createLogStream();
-
   const log = (msg) => {
     const timestamp = `[${new Date().toISOString()}] `;
     console.log(timestamp + msg);
@@ -528,7 +589,6 @@ const uploadProductCSV = async (req, res) => {
     const pwMap = await loadProductWarehouses(results, log);
     const psSet = await loadProductSuppliers(results, log);
 
-    // Procesar batches
     log("Procesando registros por batches...");
     const {
       totalProductsCreated,
@@ -547,6 +607,7 @@ const uploadProductCSV = async (req, res) => {
       log,
       prisma,
       BATCH_SIZE,
+      lowStockAlerts,
     });
 
     // Crear movimientos acumulados
@@ -557,6 +618,71 @@ const uploadProductCSV = async (req, res) => {
         const batchMovs = movementsToCreate.slice(i, i + BATCH_SIZE);
         await prisma.productWarehouseMovement.createMany({ data: batchMovs });
         totalMovementsCreated += batchMovs.length;
+      }
+    }
+
+    // Envío de alertas de stock bajo
+    if (lowStockAlerts.length) {
+      log(`→ Detectados ${lowStockAlerts.length} productos con stock bajo`);
+
+      let dispatchers = [];
+      try {
+        const response = await axios.get(
+          `${process.env.AUTH_URL}/users/users/`,
+          { headers: { Authorization: req.headers.authorization || "" } }
+        );
+        dispatchers = response.data.filter(
+          (u) => u.role?.name === "Dispatcher"
+        );
+      } catch (err) {
+        console.error("Error fetching dispatchers from auth-service:", err);
+      }
+
+      if (dispatchers.length) {
+        const dispatchEmails = dispatchers.map((u) => u.email);
+        const subject = "Low Stock Products Report";
+        const message = `
+          <h3>The following products need to be restocked as soon as possible:</h3>
+          <div style="text-align:center;">
+            <table border="1" cellspacing="0" cellpadding="4" style="margin: 0 auto;">
+              <thead>
+          <tr>
+            <th>Product ID</th>
+            <th>Warehouse ID</th>
+            <th>Stock</th>
+            <th>Reorder Level</th>
+          </tr>
+              </thead>
+              <tbody>
+          ${lowStockAlerts
+            .map(
+              (a) => `
+            <tr>
+              <td>${a.productId}</td>
+              <td>${a.warehouseId}</td>
+              <td>${a.stockQuantity}</td>
+              <td>${a.reorderLevel}</td>
+            </tr>
+          `
+            )
+            .join("")}
+              </tbody>
+            </table>
+            <br>
+            <strong>Total products needing restock: ${
+              lowStockAlerts.length
+            }</strong>
+            <br>Please take action. This is an automated message, please do not reply.
+          </div>
+        `;
+
+        const emailSent = await sendStockEmail(
+          dispatchEmails,
+          subject,
+          message
+        );
+        if (emailSent) log("→ Alerta de stock bajo enviada a los dispatchers.");
+        else log("→ No se pudo enviar la alerta de stock bajo.");
       }
     }
 
@@ -573,6 +699,7 @@ const uploadProductCSV = async (req, res) => {
         productWarehousesActualizados: totalPWUpdated,
         relacionesProductSupplierCreadas: totalPSCreated,
         movimientosRegistrados: totalMovementsCreated,
+        alertasStockBajo: lowStockAlerts.length,
       },
     });
   } catch (err) {

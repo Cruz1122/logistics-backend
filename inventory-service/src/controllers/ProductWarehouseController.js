@@ -1,4 +1,6 @@
 const prisma = require("../config/prisma");
+const { sendStockEmail } = require("../utils/mailer");
+const axios = require("axios");
 
 // Función auxiliar para registrar movimientos
 async function registerMovement({
@@ -20,6 +22,43 @@ async function registerMovement({
     },
   });
 }
+
+async function sendLowStockAlert(productWarehouse, req) {
+  const { reorderLevel, stockQuantity, productId, warehouseId } =
+    productWarehouse;
+
+  if (reorderLevel && stockQuantity <= reorderLevel) {
+    let dispatchers = [];
+    try {
+      const response = await axios.get(`${process.env.AUTH_URL}/users/users/`, {
+        headers: {
+          Authorization: req.headers.authorization || "",
+        },
+      });
+      dispatchers = response.data.filter(
+        (user) => user.role?.name === "Dispatcher"
+      );
+    } catch (err) {
+      console.error("Error fetching dispatchers from auth-service:", err);
+    }
+
+    if (dispatchers.length) {
+      const dispatchEmails = dispatchers.map((u) => u.email);
+      const subject = "Low Stock Alert";
+      const message = `The stock for product <strong>${productId}</strong> in warehouse <strong>${warehouseId}</strong> is less than or equal to the reorder level (${reorderLevel}). Current stock: ${stockQuantity}.
+        <br>Please take the necessary actions to restock.
+        <br><br>This is an automated message, please do not reply.`;
+
+      const emailSent = await sendStockEmail(dispatchEmails, subject, message);
+      if (emailSent) {
+        console.log("Low stock alert sent to Dispatchers");
+      } else {
+        console.error("Failed to send low stock alert");
+      }
+    }
+  }
+}
+
 
 module.exports = {
   // Get all records
@@ -89,7 +128,7 @@ module.exports = {
           error: "Record already exists for this product and warehouse",
         });
       }
-      
+
       const newRecord = await prisma.productWarehouse.create({
         data: {
           productId,
@@ -113,6 +152,8 @@ module.exports = {
           notes: "Stock inicial al crear registro",
         });
       }
+
+      await sendLowStockAlert(newRecord, req);
 
       res.status(201).json(newRecord);
     } catch (error) {
@@ -162,6 +203,8 @@ module.exports = {
         });
       }
 
+      await sendLowStockAlert(updated, req);
+
       res.json(updated);
     } catch (error) {
       console.error("Error updating record:", error);
@@ -207,9 +250,7 @@ module.exports = {
 
       await prisma.productWarehouse.update({
         where: { id },
-        data: { deletedAt: new Date(),
-          stockQuantity: 0, 
-         },
+        data: { deletedAt: new Date(), stockQuantity: 0 },
       });
 
       res.json({ message: "Record soft deleted successfully" });

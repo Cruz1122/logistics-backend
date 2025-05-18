@@ -29,16 +29,16 @@ model Product {
   isFragile    Boolean
   needsCooling Boolean
 
-  category            Category            @relation(fields: [categoryId], references: [id])
-  productWarehouses   ProductWarehouse[]
-  productSuppliers    ProductSupplier[]
+  category          Category           @relation(fields: [categoryId], references: [id])
+  productWarehouses ProductWarehouse[]
+  productSuppliers  ProductSupplier[]
 
   @@schema("inventory_service")
 }
 
 model Category {
-  id    String @id @default(uuid())
-  name  String @db.VarChar(100)
+  id   String @id @default(uuid())
+  name String @db.VarChar(100)
 
   products Product[]
 
@@ -46,10 +46,10 @@ model Category {
 }
 
 model Supplier {
-  id       String @id @default(uuid())
-  name     String @db.VarChar(100)
-  phone    String @db.VarChar(20)
-  email    String @db.VarChar(100)
+  id    String @id @default(uuid())
+  name  String @db.VarChar(100)
+  phone String @db.VarChar(20)
+  email String @db.VarChar(100)
 
   productSuppliers ProductSupplier[]
 
@@ -68,55 +68,55 @@ model ProductSupplier {
 }
 
 model Warehouse {
-  id            String  @id @default(uuid())
-  name          String  @db.VarChar(100)
-  address       String  @db.VarChar(255)
-  postalCode    String  @db.VarChar(10)
-  latitude      Decimal
-  longitude     Decimal
-  capacityM2    Decimal
-  status        String  @db.VarChar(20)
-  managerId     String
-  cityId        String
+  id         String  @id @default(uuid())
+  name       String  @db.VarChar(100)
+  address    String  @db.VarChar(255)
+  postalCode String  @db.VarChar(10)
+  latitude   Decimal
+  longitude  Decimal
+  capacityM2 Decimal
+  status     String  @db.VarChar(20)
+  managerId  String
+  cityId     String
 
-  cityRelation        City               @relation(fields: [cityId], references: [id])
-  productWarehouses   ProductWarehouse[]
+  cityRelation      City               @relation(fields: [cityId], references: [id])
+  productWarehouses ProductWarehouse[]
 
   @@schema("inventory_service")
 }
 
 model ProductWarehouse {
-  id              String   @id @default(uuid())
-  productId       String
-  warehouseId     String
-  stockQuantity   Int
-  reorderLevel    Int
-  lastRestock     DateTime?
-  expirationDate  DateTime?
-  status          String   @db.VarChar(20)  
-  deletedAt     DateTime?  @db.Timestamp(6)  // nullable, fecha de eliminación lógica
+  id             String    @id @default(uuid())
+  productId      String
+  warehouseId    String
+  stockQuantity  Int
+  reorderLevel   Int
+  lastRestock    DateTime?
+  expirationDate DateTime?
+  status         String    @db.VarChar(20)
+  deletedAt      DateTime? @db.Timestamp(6) // nullable, fecha de eliminación lógica
 
-  product  Product   @relation(fields: [productId], references: [id])
-  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
-  ProductWarehouseMovements    ProductWarehouseMovement[]
+  product                   Product                    @relation(fields: [productId], references: [id])
+  warehouse                 Warehouse                  @relation(fields: [warehouseId], references: [id])
+  ProductWarehouseMovements ProductWarehouseMovement[]
 
   @@schema("inventory_service")
 }
 
 model City {
-  id           String @id @default(uuid())
-  stateId      String
-  name         String @db.VarChar(100)
+  id      String @id @default(uuid())
+  stateId String
+  name    String @db.VarChar(100)
 
-  state     State    @relation(fields: [stateId], references: [id])
+  state      State       @relation(fields: [stateId], references: [id])
   warehouses Warehouse[]
 
   @@schema("inventory_service")
 }
 
 model State {
-  id     String @id @default(uuid())
-  name   String @db.VarChar(100)
+  id   String @id @default(uuid())
+  name String @db.VarChar(100)
 
   cities City[]
 
@@ -124,14 +124,14 @@ model State {
 }
 
 model ProductWarehouseMovement {
-  id               String    @id @default(uuid())
-  productWarehouseId String   // FK a ProductWarehouse
-  movementType     String    @db.VarChar(50)
-  quantityMoved    Int
-  stockAfter       Int
-  timestamp        DateTime  @default(now())
-  performedById    String?   // Opcional
-  notes            String?   @db.VarChar(255)
+  id                 String   @id @default(uuid())
+  productWarehouseId String // FK a ProductWarehouse
+  movementType       String   @db.VarChar(50)
+  quantityMoved      Int
+  stockAfter         Int
+  timestamp          DateTime @default(now())
+  performedById      String? // Opcional
+  notes              String?  @db.VarChar(255)
 
   productWarehouse ProductWarehouse @relation(fields: [productWarehouseId], references: [id])
 

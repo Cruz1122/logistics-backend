@@ -20,7 +20,7 @@ const generate2FACode = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
 const signUp = async (req, res) => {
-  const { email, password, name, lastName, phone, roleId } = req.body;
+  const { email, password, name, lastName, phone, roleId, cityId } = req.body;
 
   try {
     if (!email || !password || !name || !lastName || !phone) {
@@ -68,6 +68,7 @@ const signUp = async (req, res) => {
         lastName: formattedLastName,
         phone,
         roleId,
+        cityId: cityId || null,
         emailVerified: false,
         emailCode: emailCode,
         emailCodeExpiresAt,
@@ -197,8 +198,6 @@ const resendVerificationCode = async (req, res) => {
     res.status(500).json({ error: "Failed to resend verification code." });
   }
 };
-
-// ---------------------------------------|| -------------------------------------------||
 
 const signIn = async (req, res) => {
   const { email, password, method } = req.body;

@@ -33,6 +33,7 @@ model User {
   passwordResetCodeExpiresAt DateTime?
   createdAt                  DateTime  @default(now())
   updatedAt                  DateTime  @updatedAt
+  cityId                    String?
 
   role Role @relation(fields: [roleId], references: [id], name: "RoleToUsers")
   @@schema("auth_service")

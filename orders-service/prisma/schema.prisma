@@ -18,6 +18,7 @@ datasource db {
 
 model DeliveryPerson {
   id        String   @id
+  idUser    String
   name      String
   latitude  Float?
   longitude Float?

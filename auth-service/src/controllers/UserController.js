@@ -62,7 +62,7 @@ const getUserByEmail = async (req, res) => {
 
 const updateUser = async (req, res) => {
   const userId = req.params.id;
-  const { name, lastName, phone, roleId } = req.body;
+  const { name, lastName, phone, roleId, cityId } = req.body;
 
   try {
     const updated = await prisma.user.update({
@@ -73,6 +73,7 @@ const updateUser = async (req, res) => {
         phone,
         roleId,
         updatedAt: new Date(),
+        cityId: cityId || null, // Asignar cityId si se proporciona
       },
     });
 
@@ -95,7 +96,7 @@ const deleteUser = async (req, res) => {
 };
 
 const createUser = async (req, res) => {
-  const { email, password, name, lastName, phone, roleId } = req.body;
+  const { email, password, name, lastName, phone, roleId, cityId } = req.body;
 
   if (!email || !password || !name || !lastName || !phone || !roleId) {
     return res.status(400).json({ error: "All fields are required." });
@@ -135,6 +136,7 @@ const createUser = async (req, res) => {
         emailVerified: true, //Creado por el admin
         createdAt: new Date(),
         updatedAt: new Date(),
+        cityId: cityId || null, // Asignar cityId si se proporciona
       },
     });
 
@@ -147,6 +149,7 @@ const createUser = async (req, res) => {
         lastName: newUser.lastName,
         phone: newUser.phone,
         roleId: newUser.roleId,
+        cityId: newUser.cityId,
       },
     });
   } catch (error) {

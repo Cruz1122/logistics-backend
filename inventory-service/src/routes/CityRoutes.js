@@ -13,7 +13,7 @@ const CityController = require("../controllers/CityController");
 
 /**
  * @swagger
- * /cities:
+ * /city:
  *   get:
  *     summary: Get all cities
  *     tags: [City]
@@ -48,7 +48,7 @@ const CityController = require("../controllers/CityController");
 
 /**
  * @swagger
- * /cities/{id}:
+ * /city/{id}:
  *   get:
  *     summary: Get city by ID
  *     tags: [City]

@@ -13,7 +13,7 @@ const StateController = require("../controllers/StateController");
 
 /**
  * @swagger
- * /states:
+ * /state:
  *   get:
  *     summary: Get all states
  *     tags: [State]
@@ -45,7 +45,7 @@ const StateController = require("../controllers/StateController");
 
 /**
  * @swagger
- * /states/{id}:
+ * /state/{id}:
  *   get:
  *     summary: Get state by ID
  *     tags: [State]

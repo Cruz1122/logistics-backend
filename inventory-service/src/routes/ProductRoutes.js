@@ -13,7 +13,7 @@ const ProductController = require("../controllers/ProductController");
 
 /**
  * @swagger
- * /products:
+ * /product:
  *   get:
  *     summary: Get all products
  *     tags: [Product]
@@ -72,7 +72,7 @@ const ProductController = require("../controllers/ProductController");
 
 /**
  * @swagger
- * /products/{id}:
+ * /product/{id}:
  *   get:
  *     summary: Get a product by ID
  *     tags: [Product]

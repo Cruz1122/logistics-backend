@@ -12,6 +12,7 @@ const inventoryRoutes = require("./routes/InventoryRoutes");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./docs/swagger");
 
+const productMovementRoutes = require("./routes/ProductMovementRoutes");
 
 const app = express();
 const PORT = process.env.INVENTORY_PORT || 4003;
@@ -31,3 +32,4 @@ app.use("/product-supplier", productSupplierRoutes);
 app.use("/csv", csvRoutes);
 app.use("/inventory", inventoryRoutes);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/product-movement", productMovementRoutes);

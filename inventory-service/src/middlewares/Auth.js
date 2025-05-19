@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
-const prisma = require("../config/prisma");
 const axios = require("axios");
+
 
 function authenticateJWT(req, res, next) {
   const auth = req.headers.authorization;
@@ -24,22 +24,19 @@ function authenticateJWT(req, res, next) {
 
 function authorize(permissionName, action) {
   return async (req, res, next) => {
-    const { roleId } = req.user;
+    const { roleId } = req.user; // Asumiendo que ya está autenticado y req.user.roleId existe
+    if (!roleId) {
+      return res.status(401).json({ message: "No autorizado: falta rol" });
+    }
     try {
-      // Llama al auth-service para verificar el permiso
       const response = await axios.get(
-        `${process.env.AUTH_URL}/role-permissions/role-permissions`,
+        `${process.env.AUTH_URL}/role-permissions/check`,
         {
-          params: {
-            roleId,
-            permissionName,
-            action,
-          },
-          headers: {
-            Authorization: req.headers.authorization,
-          },
+          params: { roleId, permissionName, action },
+          headers: { Authorization: req.headers.authorization },
         }
       );
+<<<<<<< HEAD
       // <-- Agrega este log aquí
       console.log("Consulta de permisos:", {
         roleId,
@@ -49,13 +46,19 @@ function authorize(permissionName, action) {
       });
 
       if (!response.data || response.data.allowed !== true) {
+=======
+      if (!response.data.allowed) {
+>>>>>>> 585144a92b6aefdc86c8b0d2fe7adda69c85eff0
         return res
           .status(403)
-          .json({ message: "No tienes permiso para realizar esta acción" });
+          .json({ message: "No tienes permiso para esta acción" });
       }
       next();
-    } catch (err) {
-      console.error("Error chequeando permisos:", err.message);
+    } catch (error) {
+      console.error(
+        "Error consultando permisos en auth-service:",
+        error.message
+      );
       res.status(500).json({ message: "Error interno de autorización" });
     }
   };

@@ -36,19 +36,7 @@ function authorize(permissionName, action) {
           headers: { Authorization: req.headers.authorization },
         }
       );
-<<<<<<< HEAD
-      // <-- Agrega este log aquí
-      console.log("Consulta de permisos:", {
-        roleId,
-        permissionName,
-        action,
-        respuesta: response.data,
-      });
-
-      if (!response.data || response.data.allowed !== true) {
-=======
       if (!response.data.allowed) {
->>>>>>> 585144a92b6aefdc86c8b0d2fe7adda69c85eff0
         return res
           .status(403)
           .json({ message: "No tienes permiso para esta acción" });

@@ -12,7 +12,7 @@ const ProductWarehouseController = require("../controllers/ProductWarehouseContr
 
 /**
  * @swagger
- * /product-warehouses:
+ * /product-warehouse:
  *   get:
  *     summary: Get all product-warehouse records
  *     tags: [Product-Warehouse]
@@ -64,7 +64,7 @@ const ProductWarehouseController = require("../controllers/ProductWarehouseContr
 
 /**
  * @swagger
- * /product-warehouses/{id}:
+ * /product-warehouse/{id}:
  *   get:
  *     summary: Get a product-warehouse record by ID
  *     tags: [Product-Warehouse]

@@ -7,6 +7,7 @@ const getAllDeliveryPersons = async (req, res) => {
     });
     res.json(deliveryPersons);
   } catch (error) {
+    console.error("Error fetching delivery persons:", error);
     res.status(500).json({ error: "Failed to fetch delivery persons." });
   }
 };
@@ -20,6 +21,7 @@ const getDeliveryPersonById = async (req, res) => {
     if (!person) return res.status(404).json({ error: "Not found" });
     res.json(person);
   } catch (error) {
+    console.error("Error fetching delivery person:", error);
     res.status(500).json({ error: "Failed to fetch delivery person." });
   }
 };
@@ -46,6 +48,7 @@ const updateDeliveryPerson = async (req, res) => {
     });
     res.json(updated);
   } catch (error) {
+    console.error("Error updating delivery person:", error);
     res.status(500).json({ error: "Failed to update delivery person." });
   }
 };
@@ -55,6 +58,7 @@ const deleteDeliveryPerson = async (req, res) => {
     await prisma.deliveryPerson.delete({ where: { id: req.params.id } });
     res.json({ message: "Delivery person deleted." });
   } catch (error) {
+    console.error("Error deleting delivery person:", error);
     res.status(500).json({ error: "Failed to delete delivery person." });
   }
 };

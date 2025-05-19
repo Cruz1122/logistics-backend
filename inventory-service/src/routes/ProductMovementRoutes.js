@@ -10,4 +10,11 @@ router.get(
   ProductMovementController.getAll
 );
 
+router.get(
+  "/:id",
+  authenticateJWT,
+  authorize("Product-Movement Management", "listar"),
+  ProductMovementController.getById
+);
+
 module.exports = router;

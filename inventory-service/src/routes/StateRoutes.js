@@ -3,6 +3,102 @@ const router = express.Router();
 const { authenticateJWT, authorize } = require("../middlewares/Auth");
 const StateController = require("../controllers/StateController");
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: State
+ *   description: State (department) management
+ */
+
+/**
+ * @swagger
+ * /states:
+ *   get:
+ *     summary: Get all states
+ *     tags: [State]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of states
+ *   post:
+ *     summary: Create a new state
+ *     tags: [State]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: State created
+ */
+
+/**
+ * @swagger
+ * /states/{id}:
+ *   get:
+ *     summary: Get state by ID
+ *     tags: [State]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: State found
+ *   put:
+ *     summary: Update a state
+ *     tags: [State]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: State updated
+ *   delete:
+ *     summary: Delete a state
+ *     tags: [State]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: State deleted
+ */
+
+
 router.get(
   "/",
   authenticateJWT,

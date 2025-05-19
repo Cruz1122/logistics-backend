@@ -40,6 +40,13 @@ function authorize(permissionName, action) {
           },
         }
       );
+      // <-- Agrega este log aquí
+      console.log("Consulta de permisos:", {
+        roleId,
+        permissionName,
+        action,
+        respuesta: response.data,
+      });
 
       if (!response.data || response.data.allowed !== true) {
         return res

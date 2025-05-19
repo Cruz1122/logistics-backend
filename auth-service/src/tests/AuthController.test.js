@@ -581,7 +581,7 @@ describe("verifyTwoFactor", () => {
       email: "john@doe.com",
       twoFactorCode: "123456",
       twoFactorCodeExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
-      role: { name: "Admin" },
+      role: { id: "Admin" },
     });
     prisma.user.update.mockResolvedValue({});
     generateToken.mockReturnValue("mockedToken");
@@ -597,8 +597,7 @@ describe("verifyTwoFactor", () => {
     });
     expect(generateToken).toHaveBeenCalledWith({
       userId: 1,
-      email: "john@doe.com",
-      role: "Admin",
+      roleId: "Admin",
     });
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({

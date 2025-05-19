@@ -11,7 +11,6 @@ function authenticateJWT(req, res, next) {
   const token = auth.split(" ")[1];
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Token payload:", payload);    
     req.user = {
       id: payload.sub,
       roleId: payload.roleId,
@@ -24,11 +23,6 @@ function authenticateJWT(req, res, next) {
 }
 
 function authorize(permissionName, action) {
-  console.log("Authorize middleware called with:", {
-    permissionName,
-    action,
-  });
-  
   return async (req, res, next) => {
     const { roleId } = req.user; // Asumiendo que ya está autenticado y req.user.roleId existe
     if (!roleId) {

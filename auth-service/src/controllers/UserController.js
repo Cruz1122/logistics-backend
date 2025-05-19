@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const bcrypt = require("bcrypt");
+const axios = require("axios");
 const { get } = require("../routes/AuthRoutes");
 
 const capitalize = (str) => {

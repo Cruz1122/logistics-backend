@@ -19,5 +19,8 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "jiti": "^2.4.2"
+  }
 }

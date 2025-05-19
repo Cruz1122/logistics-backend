@@ -9,6 +9,9 @@ const supplierRoutes = require("./routes/SupplierRoutes");
 const productSupplierRoutes = require("./routes/ProductSupplierRoutes");
 const csvRoutes = require("./routes/CsvRoutes");
 const inventoryRoutes = require("./routes/InventoryRoutes");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./docs/swagger");
+
 const productMovementRoutes = require("./routes/ProductMovementRoutes");
 
 const app = express();
@@ -28,4 +31,5 @@ app.use("/supplier", supplierRoutes);
 app.use("/product-supplier", productSupplierRoutes);
 app.use("/csv", csvRoutes);
 app.use("/inventory", inventoryRoutes);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/product-movement", productMovementRoutes);

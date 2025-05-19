@@ -4,14 +4,14 @@ const path = require("path");
 const swaggerDefinition = {
   openapi: "3.0.0",
   info: {
-    title: "Inventory-service API",
+    title: "order Service API",
     version: "1.0.0",
-    description: "Documentación de la API de Inventory",
+    description: "Documentación de la API de orders",
   },
   servers: [
     {
-      url: `/inventory`,
-      description: "Inventory-service API",
+      url: `/orders`,
+      description: "Order Service API",
     },
   ],
   components: {

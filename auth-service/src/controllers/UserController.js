@@ -141,6 +141,42 @@ const createUser = async (req, res) => {
       },
     });
 
+    // Si el rol es "delivery", crear DeliveryPerson en microservicio orders
+    if (role.name.toLowerCase() === "delivery") {
+      if (!cityId) {        
+        return res.status(400).json({
+          error: "cityId is required for delivery role.",
+        });
+      }
+
+      try {
+        await axios.post(
+          `${process.env.ORDERS_URL}/delivery-persons`,
+          {
+            idUser: newUser.id,
+            name: `${capitalizedName} ${capitalizedLastName}`,
+            latitude: null,
+            longitude: null,
+          },
+          {
+            headers: {
+              Authorization: req.headers.authorization,
+            },
+          }
+        );
+      } catch (error) {
+        console.error("Error creating DeliveryPerson:", error.message);
+        
+        await prisma.user.delete({
+          where: { id: newUser.id },
+        });
+
+        return res.status(500).json({
+          error: "Failed to create DeliveryPerson in orders service.",
+        });
+      }
+    }
+
     res.status(201).json({
       message: "User created successfully.",
       user: {

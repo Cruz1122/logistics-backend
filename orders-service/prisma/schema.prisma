@@ -17,7 +17,7 @@ datasource db {
 }
 
 model DeliveryPerson {
-  id        String   @id
+  id        String   @id @default(uuid())
   idUser    String
   name      String
   latitude  Float?
@@ -28,7 +28,7 @@ model DeliveryPerson {
 }
 
 model Order {
-  id                    String          @id
+  id                    String          @id @default(uuid())
   customerId            String
   deliveryId            String?         @map("delivery_id")
   status                String

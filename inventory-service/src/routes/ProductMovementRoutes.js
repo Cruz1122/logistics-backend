@@ -1,5 +1,5 @@
 const express = require("express");
-const InventoryController = require("../controllers/InventoryController");
+const ProductMovementController = require("../controllers/ProductMovementController");
 const router = express.Router();
 const { authenticateJWT, authorize } = require("../middlewares/Auth");
 
@@ -7,7 +7,7 @@ router.get(
   "/",
   authenticateJWT,
   authorize("Product-Movement Management", "listar"),
-  InventoryController.getAll
+  ProductMovementController.getAll
 );
 
 module.exports = router;

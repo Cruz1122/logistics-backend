@@ -1,6 +1,4 @@
-const { productWarehouse } = require("../../../orders-service/src/config/prisma");
 const prisma = require("../config/prisma");
-const { getAll } = require("./CategoryController");
 
 module.exports = {
     async getAll (req, res) {
@@ -17,4 +15,22 @@ module.exports = {
         }
     },
 
+    async getById (req, res) {
+        const { id } = req.params;
+        try {
+            const productMovement = await prisma.productWarehouseMovement.findUnique({
+                where: { id },
+                include: {
+                    productWarehouse: true,
+                },
+            });
+            if (!productMovement) {
+                return res.status(404).json({ error: "Product movement not found" });
+            }
+            res.status(200).json(productMovement);
+        } catch (error) {
+            console.error("Error fetching product movement:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    }
 }

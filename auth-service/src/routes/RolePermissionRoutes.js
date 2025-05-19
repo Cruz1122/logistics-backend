@@ -9,6 +9,25 @@ const {
   deleteRolePermission,
 } = require("../controllers/RolePermissionController");
 
+// auth-service (Express)
+router.get("/check", authenticateJWT, async (req, res) => {
+  const { roleId, permissionName, action } = req.query;
+  if (!roleId || !permissionName || !action) {
+    return res.status(400).json({ error: "Parámetros incompletos" });
+  }
+  try {
+    const rp = await prisma.rolePermission.findFirst({
+      where: { roleId, permission: { name: permissionName } },
+      select: { [action]: true },
+    });
+    return res.json({ allowed: !!(rp && rp[action]) });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+
 // Ruta base: /role-permissions
 
 /**
@@ -192,5 +211,6 @@ router.delete(
   authorize("Role-Permission Management", "eliminar"),
   deleteRolePermission
 );
+
 
 module.exports = router;

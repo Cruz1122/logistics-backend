@@ -317,8 +317,7 @@ const verifyTwoFactor = async (req, res) => {
 
     const token = generateToken({
       userId: user.id,
-      email: user.email,
-      role: user.role.name,
+      roleId: user.role.id,
     });    
 
     res.status(200).json({

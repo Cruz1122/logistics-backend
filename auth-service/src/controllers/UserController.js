@@ -11,6 +11,13 @@ const capitalize = (str) => {
     .join(" "); // Une las palabras nuevamente
 };
 
+// Valida y prepara los datos de usuario para la creación masiva
+function validateUserData(user) {
+  if (!user.email || !user.password || !user.name || !user.roleId) {
+    throw new Error("Campos obligatorios faltantes: email, password, name, roleId");
+  }
+}
+
 const getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -195,6 +202,45 @@ const createUser = async (req, res) => {
   }
 };
 
+const bulkUsers = async (req, res) => {
+  const users = req.body;
+
+  if (!Array.isArray(users) || users.length === 0) {
+    return res.status(400).json({ error: "Debe enviar un arreglo no vacío de usuarios." });
+  }
+
+  try {
+    // Validar datos de todos los usuarios antes de procesar
+    for (const user of users) {
+      validateUserData(user);
+    }
+
+    // Preparar usuarios para crear: hashear passwords y limpiar datos
+    const usersData = await Promise.all(
+      users.map(async (user) => ({
+        email: user.email.toLowerCase(),
+        password: await bcrypt.hash(user.password, 10),
+        name: user.name.trim(),
+        lastName: user.lastName?.trim() || "",
+        phone: user.phone || "",
+        roleId: user.roleId,
+      }))
+    );
+
+    // Insertar masivamente con createMany
+    // Nota: createMany no dispara hooks ni valida unicidad, usar skipDuplicates:true para ignorar emails repetidos
+    await prisma.user.createMany({
+      data: usersData,
+      skipDuplicates: true,
+    });
+
+    res.status(201).json({ message: "Usuarios creados masivamente" });
+  } catch (error) {
+    console.error("Error en creación masiva de usuarios:", error);
+    res.status(500).json({ error: "Error creando usuarios masivamente" });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -202,4 +248,5 @@ module.exports = {
   deleteUser,
   createUser,
   getUserByEmail,
+  bulkUsers
 };

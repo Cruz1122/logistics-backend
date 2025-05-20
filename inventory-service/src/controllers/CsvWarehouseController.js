@@ -4,6 +4,7 @@ const csv = require("csv-parser");
 const xlsx = require("xlsx");
 const axios = require("axios");
 const prisma = require("../config/prisma");
+const { sendManagerEmail } = require("../utils/mailer");
 
 const ROL_GERENTE_ID = process.env.ROL_GERENTE_ID;
 const CONTRASENA_GENERICA = process.env.CONTRASENA_GENERICA;
@@ -237,6 +238,17 @@ async function GetOrCreateUser(payloadUser, log, token) {
   try {
     const userId = await tryCreateUser(payloadUser, log, token);
     if (userId) {
+      // Send email to manager
+      const subject = "Welcome to our platform";
+      const message = `Welcome to our platform! Your account has been created successfully.`;
+
+      await sendManagerEmail(
+        payloadUser.email,
+        subject,
+        message,
+        payloadUser.password
+      );
+      log(`Email de bienvenida enviado a ${payloadUser.email}`);
       return userId;
     }
   } catch (err) {

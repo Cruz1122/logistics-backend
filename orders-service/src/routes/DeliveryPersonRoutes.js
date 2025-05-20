@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { authenticateJWT, authorize } = require("../middlewares/Auth");
 const {
   getAllDeliveryPersons,
   getDeliveryPersonById,
@@ -113,10 +114,39 @@ const {
  *         description: Delivery person deleted
  */
 
-router.get("/", getAllDeliveryPersons);
-router.get("/:id", getDeliveryPersonById);
-router.post("/", createDeliveryPerson);
-router.put("/:id", updateDeliveryPerson);
-router.delete("/:id", deleteDeliveryPerson);
+router.get(
+  "/",
+  authenticateJWT,
+  authorize("Delivery-Person Management", "listar"),
+  getAllDeliveryPersons
+);
+
+router.get(
+  "/:id",
+  authenticateJWT,
+  authorize("Delivery-Person Management", "listar"),
+  getDeliveryPersonById
+);
+
+router.post(
+  "/",
+  authenticateJWT,
+  authorize("Delivery-Person Management", "crear"),
+  createDeliveryPerson
+);
+
+router.put(
+  "/:id",
+  authenticateJWT,
+  authorize("Delivery-Person Management", "editar"),
+  updateDeliveryPerson
+);
+
+router.delete(
+  "/:id",
+  authenticateJWT,
+  authorize("Delivery-Person Management", "eliminar"),
+  deleteDeliveryPerson
+);
 
 module.exports = router;

@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const prisma = require("../config/prisma");
+const axios = require("axios");
 
 function authenticateJWT(req, res, next) {
   const auth = req.headers.authorization;
@@ -23,24 +23,29 @@ function authenticateJWT(req, res, next) {
 
 function authorize(permissionName, action) {
   return async (req, res, next) => {
-    const { roleId } = req.user;
+    const { roleId } = req.user; // Asumiendo que ya está autenticado y req.user.roleId existe
+    if (!roleId) {
+      return res.status(401).json({ message: "No autorizado: falta rol" });
+    }
     try {
-      const rp = await prisma.rolePermission.findFirst({
-        where: {
-          roleId,
-          permission: { name: permissionName },
-        },
-        select: { [action]: true },
-      });
-
-      if (!rp || rp[action] !== true) {
+      const response = await axios.get(
+        `${process.env.AUTH_URL}/role-permissions/check`,
+        {
+          params: { roleId, permissionName, action },
+          headers: { Authorization: req.headers.authorization },
+        }
+      );
+      if (!response.data.allowed) {
         return res
           .status(403)
-          .json({ message: "No tienes permiso para realizar esta acción" });
+          .json({ message: "No tienes permiso para esta acción" });
       }
       next();
-    } catch (err) {
-      console.error("Error chequeando permisos:", err);
+    } catch (error) {
+      console.error(
+        "Error consultando permisos en auth-service:",
+        error.message
+      );
       res.status(500).json({ message: "Error interno de autorización" });
     }
   };

@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const bcrypt = require("bcrypt");
+const axios = require("axios");
 const { get } = require("../routes/AuthRoutes");
 
 const capitalize = (str) => {
@@ -9,6 +10,13 @@ const capitalize = (str) => {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitaliza cada palabra
     .join(" "); // Une las palabras nuevamente
 };
+
+// Valida y prepara los datos de usuario para la creación masiva
+function validateUserData(user) {
+  if (!user.email || !user.password || !user.name || !user.roleId) {
+    throw new Error("Campos obligatorios faltantes: email, password, name, roleId");
+  }
+}
 
 const getAllUsers = async (req, res) => {
   try {
@@ -140,6 +148,42 @@ const createUser = async (req, res) => {
       },
     });
 
+    // Si el rol es "delivery", crear DeliveryPerson en microservicio orders
+    if (role.name.toLowerCase() === "delivery") {
+      if (!cityId) {        
+        return res.status(400).json({
+          error: "cityId is required for delivery role.",
+        });
+      }
+
+      try {
+        await axios.post(
+          `${process.env.ORDERS_URL}/delivery-persons`,
+          {
+            idUser: newUser.id,
+            name: `${capitalizedName} ${capitalizedLastName}`,
+            latitude: null,
+            longitude: null,
+          },
+          {
+            headers: {
+              Authorization: req.headers.authorization,
+            },
+          }
+        );
+      } catch (error) {
+        console.error("Error creating DeliveryPerson:", error.message);
+        
+        await prisma.user.delete({
+          where: { id: newUser.id },
+        });
+
+        return res.status(500).json({
+          error: "Failed to create DeliveryPerson in orders service.",
+        });
+      }
+    }
+
     res.status(201).json({
       message: "User created successfully.",
       user: {
@@ -158,6 +202,45 @@ const createUser = async (req, res) => {
   }
 };
 
+const bulkUsers = async (req, res) => {
+  const users = req.body;
+
+  if (!Array.isArray(users) || users.length === 0) {
+    return res.status(400).json({ error: "Debe enviar un arreglo no vacío de usuarios." });
+  }
+
+  try {
+    // Validar datos de todos los usuarios antes de procesar
+    for (const user of users) {
+      validateUserData(user);
+    }
+
+    // Preparar usuarios para crear: hashear passwords y limpiar datos
+    const usersData = await Promise.all(
+      users.map(async (user) => ({
+        email: user.email.toLowerCase(),
+        password: await bcrypt.hash(user.password, 10),
+        name: user.name.trim(),
+        lastName: user.lastName?.trim() || "",
+        phone: user.phone || "",
+        roleId: user.roleId,
+      }))
+    );
+
+    // Insertar masivamente con createMany
+    // Nota: createMany no dispara hooks ni valida unicidad, usar skipDuplicates:true para ignorar emails repetidos
+    await prisma.user.createMany({
+      data: usersData,
+      skipDuplicates: true,
+    });
+
+    res.status(201).json({ message: "Usuarios creados masivamente" });
+  } catch (error) {
+    console.error("Error en creación masiva de usuarios:", error);
+    res.status(500).json({ error: "Error creando usuarios masivamente" });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -165,4 +248,5 @@ module.exports = {
   deleteUser,
   createUser,
   getUserByEmail,
+  bulkUsers
 };

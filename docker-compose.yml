@@ -7,9 +7,9 @@ services:
       - ./.env
     depends_on:
       - auth-service
-      # - geo-service
+      - geo-service
       - inventory-service
-      # - orders-service
+      - orders-service
       # - reports-service
 
   auth-service:
@@ -20,11 +20,8 @@ services:
       - ./.env
     volumes:
       - ./auth-service:/app
-
-  # geo-service:
-  #   build: ./geo-service
-  #   ports:
-  #     - "4002:4002"
+    logging:
+      driver: "none"
 
   inventory-service:
     build: ./inventory-service
@@ -34,6 +31,8 @@ services:
       - ./.env
     volumes:
       - ./inventory-service:/app
+    logging:
+      driver: "none"
 
   orders-service:
     build: ./orders-service
@@ -43,11 +42,33 @@ services:
       - ./.env
     volumes:
       - ./orders-service:/app
-  
+    logging:
+      driver: "none"
+
+  geo-service:
+    build: ./geo-service
+    env_file: ./.env
+    depends_on:
+      - geo-mongo
+    ports: ["4002:4002"]
+
+  geo-mongo:
+    image: mongo:6
+    container_name: geo-mongo
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: geolocation-db
+    volumes:
+      - geo-data:/data/db
+    logging:
+      driver: "none"
+    command: >
+      sh -c "mongod --bind_ip_all --quiet > /dev/null 2>&1"
+
   # reports-service:
   #   build: ./reports-service
   #   ports:
   #     - "4005:4005"
 volumes:
   pgdata:
-
+  geo-data:

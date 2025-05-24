@@ -11,7 +11,7 @@ const {
 
 /**
  * @swagger
- * /permissions:
+ * /permissions/permissions:
  *   get:
  *     summary: Retrieve all permissions
  *     tags: [Permissions]

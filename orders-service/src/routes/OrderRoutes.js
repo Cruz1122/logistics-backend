@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { authenticateJWT, authorize } = require("../middlewares/Auth");
 const {
   getAllOrders,
   getOrderById,
@@ -123,10 +124,39 @@ const {
  *         description: Order deleted
  */
 
-router.get("/", getAllOrders);
-router.get("/:id", getOrderById);
-router.post("/", createOrder);
-router.put("/:id", updateOrder);
-router.delete("/:id", deleteOrder);
+router.get(
+  "/",
+  authenticateJWT,
+  authorize("Order Management", "listar"),
+  getAllOrders
+);
+
+router.get(
+  "/:id",
+  authenticateJWT,
+  authorize("Order Management", "listar"),
+  getOrderById
+);
+
+router.post(
+  "/",
+  authenticateJWT,
+  authorize("Order Management", "crear"),
+  createOrder
+);
+
+router.put(
+  "/:id",
+  authenticateJWT,
+  authorize("Order Management", "editar"),
+  updateOrder
+);
+
+router.delete(
+  "/:id",
+  authenticateJWT,
+  authorize("Order Management", "eliminar"),
+  deleteOrder
+);
 
 module.exports = router;

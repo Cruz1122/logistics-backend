@@ -8,6 +8,7 @@ const {
   deleteUser,
   createUser,
   getUserByEmail,
+  bulkUsers
 } = require("../controllers/UserController");
 
 /**
@@ -183,6 +184,13 @@ router.post(
   authenticateJWT,
   authorize("User Management", "crear"),
   createUser
+);
+
+router.post(
+  "/bulk",
+  authenticateJWT,
+  authorize("User Management", "crear"),
+  bulkUsers
 );
 
 module.exports = router;

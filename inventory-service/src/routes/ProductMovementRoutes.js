@@ -48,14 +48,14 @@ const { authenticateJWT, authorize } = require("../middlewares/Auth");
 router.get(
   "/",
   authenticateJWT,
-  authorize("Product-Movement Management", "listar"),
+  authorize("Product-Movements Management", "listar"),
   ProductMovementController.getAll
 );
 
 router.get(
   "/:id",
   authenticateJWT,
-  authorize("Product-Movement Management", "listar"),
+  authorize("Product-Movements Management", "listar"),
   ProductMovementController.getById
 );
 

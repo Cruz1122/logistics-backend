@@ -4,6 +4,7 @@ const csv = require("csv-parser");
 const xlsx = require("xlsx");
 const axios = require("axios");
 const prisma = require("../config/prisma");
+const { sendManagerEmail } = require("../utils/mailer");
 
 const ROL_GERENTE_ID = process.env.ROL_GERENTE_ID;
 const CONTRASENA_GENERICA = process.env.CONTRASENA_GENERICA;
@@ -87,7 +88,7 @@ async function loadCities(log) {
 }
 
 // Helper para procesar batch de registros
-async function processBatch(batch, cityMap, log) {
+async function processBatch(batch, cityMap, log, token) {
   let totalWarehousesCreated = 0;
   let totalWarehousesUpdated = 0;
   let totalUsersCreated = 0;
@@ -141,6 +142,7 @@ async function processBatch(batch, cityMap, log) {
       log,
       idAlmacen,
       nombreAlmacen,
+      token
     });
 
     if (userError) continue;
@@ -182,6 +184,7 @@ async function tryGetOrCreateUser({
   log,
   idAlmacen,
   nombreAlmacen,
+  token
 }) {
   const { name, lastName } = extractManagerNames(gerenteRaw);
 
@@ -198,7 +201,7 @@ async function tryGetOrCreateUser({
   let userCreated = false;
   let userError = false;
   try {
-    userId = await GetOrCreateUser(payloadUser, log);
+    userId = await GetOrCreateUser(payloadUser, log, token);
     if (!userId) {
       handleUserError(errors, log, idAlmacen, nombreAlmacen, payloadUser.email);
       userError = true;
@@ -212,13 +215,13 @@ async function tryGetOrCreateUser({
   return { userId, userCreated, userError };
 }
 
-async function GetOrCreateUser(payloadUser, log) {
+async function GetOrCreateUser(payloadUser, log, token) {
   try {
     const existingUserResponse = await axios.get(
       `http://auth-service:4001/users/email/${payloadUser.email}`,
       {
         headers: {
-          Authorization: `Bearer ${process.env.AUTH_TOKEN}`,
+          Authorization: token,
         },
       }
     );
@@ -233,8 +236,19 @@ async function GetOrCreateUser(payloadUser, log) {
   }
 
   try {
-    const userId = await tryCreateUser(payloadUser, log);
+    const userId = await tryCreateUser(payloadUser, log, token);
     if (userId) {
+      // Send email to manager
+      const subject = "Welcome to our platform";
+      const message = `Welcome to our platform! Your account has been created successfully.`;
+
+      await sendManagerEmail(
+        payloadUser.email,
+        subject,
+        message,
+        payloadUser.password
+      );
+      log(`Email de bienvenida enviado a ${payloadUser.email}`);
       return userId;
     }
   } catch (err) {
@@ -246,14 +260,14 @@ async function GetOrCreateUser(payloadUser, log) {
   return null;
 }
 
-async function tryCreateUser(payloadUser, log) {
+async function tryCreateUser(payloadUser, log, token) {
   try {
     const response = await axios.post(
       "http://auth-service:4001/users/",
       payloadUser,
       {
         headers: {
-          Authorization: `Bearer ${process.env.AUTH_TOKEN}`,
+          Authorization: token,
         },
       }
     );
@@ -270,6 +284,7 @@ async function tryCreateUser(payloadUser, log) {
     throw err;
   }
 }
+
 
 // Helper to handle warehouse creation/update logic and errors
 async function tryCreateOrUpdateWarehouse({
@@ -426,6 +441,7 @@ const uploadWarehousesWithManagers = async (req, res) => {
   const filePath = req.file.path;
   const logStream = createLogStream();
   const log = createLogger(logStream);
+  const token = req.headers.authorization; // Aquí obtienes el token
 
   try {
     log("Inicio de lectura del archivo.");
@@ -442,7 +458,8 @@ const uploadWarehousesWithManagers = async (req, res) => {
       const batch = results.slice(i, i + BATCH_SIZE);
       log(`Procesando batch de registros ${i + 1} a ${i + batch.length}`);
 
-      const batchResult = await processBatch(batch, cityMap, log);
+      // Aquí debes pasar el token a processBatch y a funciones internas que usan axios
+      const batchResult = await processBatch(batch, cityMap, log, token);
 
       totalWarehousesCreated += batchResult.totalWarehousesCreated;
       totalWarehousesUpdated += batchResult.totalWarehousesUpdated;
@@ -471,5 +488,6 @@ const uploadWarehousesWithManagers = async (req, res) => {
       .json({ error: "Fallo importación almacenes", detalles: msg });
   }
 };
+
 
 module.exports = { uploadWarehousesWithManagers };

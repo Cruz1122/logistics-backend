@@ -12,7 +12,7 @@ const WarehouseController = require("../controllers/WarehouseController");
 
 /**
  * @swagger
- * /warehouses:
+ * /warehouse:
  *   get:
  *     summary: Get all warehouses
  *     tags: [Warehouse]
@@ -74,7 +74,7 @@ const WarehouseController = require("../controllers/WarehouseController");
 
 /**
  * @swagger
- * /warehouses/{id}:
+ * /warehouse/{id}:
  *   get:
  *     summary: Get warehouse by ID
  *     tags: [Warehouse]

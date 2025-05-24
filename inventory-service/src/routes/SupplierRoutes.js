@@ -12,7 +12,7 @@ const SupplierController = require("../controllers/SupplierController");
 
 /**
  * @swagger
- * /suppliers:
+ * /supplier:
  *   get:
  *     summary: Get all suppliers
  *     tags: [Supplier]
@@ -50,7 +50,7 @@ const SupplierController = require("../controllers/SupplierController");
 
 /**
  * @swagger
- * /suppliers/{id}:
+ * /supplier/{id}:
  *   get:
  *     summary: Get supplier by ID
  *     tags: [Supplier]

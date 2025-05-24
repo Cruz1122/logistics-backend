@@ -12,7 +12,7 @@ const ProductSupplierController = require("../controllers/ProductSupplierControl
 
 /**
  * @swagger
- * /product-suppliers:
+ * /product-supplier:
  *   get:
  *     summary: Get all product-supplier relations
  *     tags: [Product-Supplier]
@@ -47,7 +47,7 @@ const ProductSupplierController = require("../controllers/ProductSupplierControl
 
 /**
  * @swagger
- * /product-suppliers/{id}:
+ * /product-supplier/{id}:
  *   get:
  *     summary: Get a product-supplier relation by ID
  *     tags: [Product-Supplier]

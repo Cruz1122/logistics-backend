@@ -70,6 +70,7 @@ const signUp = async (req, res) => {
         roleId,
         cityId: cityId || null,
         emailVerified: false,
+        isActive,
         emailCode: emailCode,
         emailCodeExpiresAt,
         createdAt: new Date(),

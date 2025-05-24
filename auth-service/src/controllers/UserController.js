@@ -68,9 +68,36 @@ const getUserByEmail = async (req, res) => {
   }
 };
 
+const getUserStatusById = async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({ error: "User ID is required." });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        isActive: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    res.status(200).json({ user });
+  } catch (error) {
+    console.error("Error fetching user status:", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+};
+
+
 const updateUser = async (req, res) => {
   const userId = req.params.id;
-  const { name, lastName, phone, roleId, cityId } = req.body;
+  const { name, lastName, phone, roleId, cityId, isActive} = req.body;
 
   try {
     const updated = await prisma.user.update({
@@ -80,6 +107,7 @@ const updateUser = async (req, res) => {
         lastName,
         phone,
         roleId,
+        isActive,
         updatedAt: new Date(),
         cityId: cityId || null, // Asignar cityId si se proporciona
       },
@@ -141,7 +169,8 @@ const createUser = async (req, res) => {
         lastName: capitalizedLastName,
         phone,
         roleId,
-        emailVerified: true, //Creado por el admin
+        emailVerified: true,
+        isActive, 
         createdAt: new Date(),
         updatedAt: new Date(),
         cityId: cityId || null, // Asignar cityId si se proporciona
@@ -244,6 +273,7 @@ const bulkUsers = async (req, res) => {
 module.exports = {
   getAllUsers,
   getUserById,
+  getUserStatusById,
   updateUser,
   deleteUser,
   createUser,

@@ -24,6 +24,7 @@ model User {
   name                       String
   lastName                   String
   phone                      String
+  isActive                   Boolean   @default(true)
   passwordResetCode          String?
   emailCode                  String?
   emailCodeExpiresAt         DateTime?

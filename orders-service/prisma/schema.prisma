@@ -35,6 +35,7 @@ model Order {
   deliveryAddress       String
   creationDate          DateTime        @default(now())
   estimatedDeliveryTime DateTime?
+  trackingCode          String?
   totalAmount           Float           @default(0)
 
   deliveryPerson        DeliveryPerson? @relation(fields: [deliveryId], references: [id])

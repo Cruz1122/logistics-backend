@@ -7,6 +7,7 @@ const {
   createOrder,
   updateOrder,
   deleteOrder,
+  getOrderByTrackingCode,
 } = require("../controllers/OrderController");
 
 /**
@@ -136,6 +137,13 @@ router.get(
   authenticateJWT,
   authorize("Order Management", "listar"),
   getOrderById
+);
+
+router.get(
+  "/tracking/:trackingCode",
+  authenticateJWT,
+  authorize("Order Management", "listar"),
+  getOrderByTrackingCode
 );
 
 router.post(

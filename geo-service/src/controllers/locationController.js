@@ -1,4 +1,5 @@
 const Location = require("../models/Location");
+const axios = require("axios");
 
 // POST /locations – guarda nueva posición
 async function createLocation(req, res) {
@@ -14,14 +15,28 @@ async function createLocation(req, res) {
 // GET /locations – lista o filtra por repartidor
 async function getLocations(req, res) {
   const { deliveryPersonId } = req.query;
+
+  if (!deliveryPersonId) {
+    return res.status(400).json({ error: "deliveryPersonId es requerido" });
+  }
+
   const filter = deliveryPersonId ? { deliveryPersonId } : {};
   const list = await Location.find(filter).limit(100);
+
+  if (!list || list.length === 0) {
+    return res.status(404).json({ error: "No se encontraron ubicaciones." });
+  }
   res.json(list);
 }
 
 // GET /locations/near – ubicaciones cercanas a un punto
 async function getLocationsNear(req, res) {
   const { lng, lat, maxDistance = 500 } = req.query;
+
+  if (!lng || !lat) {
+    return res.status(400).json({ error: "lng y lat son requeridos." });
+  }
+
   const points = await Location.find({
     location: {
       $near: {
@@ -33,11 +48,104 @@ async function getLocationsNear(req, res) {
       },
     },
   }).limit(50);
+
+  if (!points || points.length === 0) {
+    return res
+      .status(404)
+      .json({ error: "No se encontraron ubicaciones cercanas." });
+  }
   res.json(points);
 }
+
+async function updateLocation(req, res) {
+  try {
+    const { deliveryPersonId, location } = req.body;
+    if (!deliveryPersonId || !location?.coordinates) {
+      return res.status(400).json({ error: "Faltan datos requeridos." });
+    }
+
+    // Guarda una nueva posición con timestamp actual
+    const loc = new Location({
+      deliveryPersonId,
+      location,
+      timestamp: new Date(),
+    });
+    await loc.save();
+
+    res.status(200).json({ message: "Ubicación actualizada." });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+async function getLatestLocation(req, res) {
+  try {
+    const { deliveryPersonId } = req.query;
+    if (!deliveryPersonId) {
+      return res.status(400).json({ error: "deliveryPersonId es requerido" });
+    }
+
+    // Obtiene la última ubicación (orden descendente por timestamp)
+    const latestLocation = await Location.findOne({ deliveryPersonId })
+      .sort({ timestamp: -1 })
+      .exec();
+
+    if (!latestLocation) {
+      return res
+        .status(404)
+        .json({ error: "No se encontró ubicación para ese repartidor" });
+    }
+
+    res.json(latestLocation);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+async function trackCode(req, res) {
+  try {
+    const { trackingCode } = req.query;
+    if (!trackingCode) {
+      return res.status(400).json({ error: "trackingCode es requerido" });
+    }
+
+    // 1. Consulta orders-service para obtener deliveryPersonId
+    const ordersRes = await axios.get(
+      `${process.env.ORDERS_URL}/orders/tracking/${trackingCode}`,
+      {
+        headers: {
+          Authorization: req.headers.authorization || "",
+        },
+      }
+    );
+    const order = ordersRes.data;
+
+    if (!order)
+      return res.status(404).json({ error: "Código de tracking no válido" });
+
+    const deliveryPersonId = order.deliveryId;
+
+    // 2. Consulta última ubicación
+    const latestLocation = await Location.findOne({ deliveryPersonId })
+      .sort({ timestamp: -1 })
+      .exec();
+
+    if (!latestLocation)
+      return res
+        .status(404)
+        .json({ error: "No hay ubicación disponible para este pedido" });
+
+    res.json(latestLocation);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 module.exports = {
   createLocation,
   getLocations,
   getLocationsNear,
+  updateLocation,
+  getLatestLocation,
+  trackCode,
 };

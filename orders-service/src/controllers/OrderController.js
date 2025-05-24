@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const axios = require("axios");
+const { geocode } = require("../utils/geocode");
 
 const getAllOrders = async (req, res) => {
   try {
@@ -30,6 +31,21 @@ const getOrderById = async (req, res) => {
   }
 };
 
+const getOrderByTrackingCode = async (req, res) => {
+  try {
+    const { trackingCode } = req.params;
+    const order = await prisma.order.findFirst({
+      where: { trackingCode },
+      include: { deliveryPerson: true, orderProducts: true },
+    });
+    if (!order) return res.status(404).json({ error: "Order not found." });
+    res.json(order);
+  } catch (error) {
+    console.error("Error fetching order by tracking code:", error);
+    res.status(500).json({ error: "Failed to fetch order by tracking code." });
+  }
+};
+
 async function getUser(userId, token) {
   const response = await axios.get(`${process.env.AUTH_URL}/users/${userId}`, {
     headers: { Authorization: token },
@@ -54,7 +70,6 @@ async function getUserWithLocation(userId, token) {
   const city = await getCityWithState(user.cityId, token);
   return { user, city };
 }
-
 
 async function assignDelivery(customerId, token) {
   try {
@@ -115,6 +130,20 @@ async function assignDelivery(customerId, token) {
   }
 }
 
+const generateTrackingCode = async () => {
+  const trackingCode = Math.random().toString(36).substring(2, 8).toUpperCase(); // Ej: '5G7X9A'
+
+  const existingOrder = await prisma.order.findFirst({
+    where: { trackingCode },
+  });
+
+  if (existingOrder) {
+    return generateTrackingCode(); // Generar otro código si ya existe
+  }
+
+  return trackingCode;
+};
+
 // Controlador para crear orden con asignación automática de delivery
 const createOrder = async (req, res) => {
   try {
@@ -128,10 +157,24 @@ const createOrder = async (req, res) => {
     } = req.body;
     const token = req.headers.authorization;
 
-    console.log("Token:", token);
-    
-
     const delivery = await assignDelivery(customerId, token);
+
+    if (!delivery) {
+      return res.status(404).json({ error: "No delivery person available." });
+    }
+
+    if (!customerId || !status || !deliveryAddress || !totalAmount) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
+
+    // Generar código de tracking único
+    const trackingCode = await generateTrackingCode();
+
+    if (!trackingCode) {
+      return res
+        .status(500)
+        .json({ error: "Failed to generate tracking code." });
+    }
 
     const order = await prisma.order.create({
       data: {
@@ -144,8 +187,28 @@ const createOrder = async (req, res) => {
           ? new Date(estimatedDeliveryTime)
           : undefined,
         totalAmount,
+        trackingCode,
       },
     });
+
+    let coords;
+    try {
+      coords = await geocode(deliveryAddress);
+    } catch (error) {
+      console.error("Error geocoding address:", error);
+      return res.status(500).json({ error: "Failed to geocode address." });
+    }
+
+    if (coords) {
+      await axios.post(`${process.env.GEO_URL}/locations`, {
+        deliveryPersonId: delivery.id,
+        orderId: order.id,
+        location: {
+          type: "Point",
+          coordinates: [coords.lng, coords.lat],
+        },
+      });
+    }
 
     res.status(201).json(order);
   } catch (error) {
@@ -155,7 +218,13 @@ const createOrder = async (req, res) => {
 };
 
 const updateOrder = async (req, res) => {
-  const { deliveryId, status, deliveryAddress, estimatedDeliveryTime, totalAmount } = req.body;
+  const {
+    deliveryId,
+    status,
+    deliveryAddress,
+    estimatedDeliveryTime,
+    totalAmount,
+  } = req.body;
   try {
     const updated = await prisma.order.update({
       where: { id: req.params.id },
@@ -163,7 +232,9 @@ const updateOrder = async (req, res) => {
         deliveryId,
         status,
         deliveryAddress,
-        estimatedDeliveryTime: estimatedDeliveryTime ? new Date(estimatedDeliveryTime) : undefined,
+        estimatedDeliveryTime: estimatedDeliveryTime
+          ? new Date(estimatedDeliveryTime)
+          : undefined,
         totalAmount,
       },
     });
@@ -190,4 +261,5 @@ module.exports = {
   createOrder,
   updateOrder,
   deleteOrder,
+  getOrderByTrackingCode,
 };

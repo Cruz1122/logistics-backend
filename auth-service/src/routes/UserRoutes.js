@@ -4,6 +4,7 @@ const { authenticateJWT, authorize } = require("../middlewares/Auth");
 const {
   getAllUsers,
   getUserById,
+  getUserStatusById,
   updateUser,
   deleteUser,
   createUser,
@@ -59,6 +60,8 @@ router.get(
   authorize("User Management", "listar"),
   getUserById
 );
+
+router.get("/status/:id", getUserStatusById);
 
 router.get(
   "/email/:email",

@@ -7,6 +7,7 @@ const {
   createDeliveryPerson,
   updateDeliveryPerson,
   deleteDeliveryPerson,
+  getDeliveryPersonByUserId,
 } = require("../controllers/DeliveryPersonController");
 
 /**
@@ -126,6 +127,11 @@ router.get(
   authenticateJWT,
   authorize("Delivery-Person Management", "listar"),
   getDeliveryPersonById
+);
+
+router.get(
+  "/user/:idUser",
+  getDeliveryPersonByUserId
 );
 
 router.post(

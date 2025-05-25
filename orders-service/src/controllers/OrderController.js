@@ -263,5 +263,4 @@ module.exports = {
   updateOrder,
   deleteOrder,
   getOrderByTrackingCode,
-  getCoordsByAddress,
 };

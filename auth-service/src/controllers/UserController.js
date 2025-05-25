@@ -109,7 +109,7 @@ const updateUser = async (req, res) => {
         roleId,
         isActive,
         updatedAt: new Date(),
-        cityId: cityId !== undefined ? cityId : null, // Asegura que cityId se actualice correctamente
+        cityId, // Asegura que cityId se actualice correctamente
       },
     });
 

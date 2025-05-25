@@ -8,6 +8,7 @@ const {
   updateOrder,
   deleteOrder,
   getOrderByTrackingCode,
+  getCoordsByAddress,
 } = require("../controllers/OrderController");
 
 /**

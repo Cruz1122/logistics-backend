@@ -255,6 +255,7 @@ const deleteOrder = async (req, res) => {
   }
 };
 
+
 module.exports = {
   getAllOrders,
   getOrderById,
@@ -262,4 +263,5 @@ module.exports = {
   updateOrder,
   deleteOrder,
   getOrderByTrackingCode,
+  getCoordsByAddress,
 };

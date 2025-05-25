@@ -25,6 +25,20 @@ const getRoleById = async (req, res) => {
   }
 };
 
+const getRoleByName = async (req, res) => {
+  const { name } = req.params;
+  try {
+    const role = await prisma.role.findFirst({
+      where: { name },
+    });
+    if (!role) return res.status(404).json({ error: "Role not found" });
+    res.json(role.id ? role : { message: "Role not found" });
+  } catch (err) {
+    console.error("Error fetching role by name:", err);
+    res.status(500).json({ error: "Failed to fetch role by name" });
+  }
+};
+
 const updateRole = async (req, res) => {
   const { name, description } = req.body;
   try {
@@ -106,4 +120,5 @@ module.exports = {
   getRoleById,
   updateRole,
   deleteRole,
+  getRoleByName
 };

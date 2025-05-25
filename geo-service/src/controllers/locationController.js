@@ -64,19 +64,30 @@ async function updateLocation(req, res) {
       return res.status(400).json({ error: "Faltan datos requeridos." });
     }
 
-    // Guarda una nueva posición con timestamp actual
     const loc = new Location({
       deliveryPersonId,
       location,
       timestamp: new Date(),
     });
+
     await loc.save();
+
+    // Obtén el objeto io desde el request
+    const io = req.app.get("io");
+
+    // Emite evento a todos los clientes suscritos a este deliveryPersonId
+    io.to(deliveryPersonId).emit("locationUpdate", {
+      deliveryPersonId,
+      location,
+      timestamp: loc.timestamp,
+    });
 
     res.status(200).json({ message: "Ubicación actualizada." });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 }
+  
 
 async function getLatestLocation(req, res) {
   try {
@@ -111,12 +122,7 @@ async function trackCode(req, res) {
 
     // 1. Consulta orders-service para obtener deliveryPersonId
     const ordersRes = await axios.get(
-      `${process.env.ORDERS_URL}/orders/tracking/${trackingCode}`,
-      {
-        headers: {
-          Authorization: req.headers.authorization || "",
-        },
-      }
+      `${process.env.ORDERS_URL}/orders/tracking/${trackingCode}`
     );
     const order = ordersRes.data;
 
@@ -124,18 +130,7 @@ async function trackCode(req, res) {
       return res.status(404).json({ error: "Código de tracking no válido" });
 
     const deliveryPersonId = order.deliveryId;
-
-    // 2. Consulta última ubicación
-    const latestLocation = await Location.findOne({ deliveryPersonId })
-      .sort({ timestamp: -1 })
-      .exec();
-
-    if (!latestLocation)
-      return res
-        .status(404)
-        .json({ error: "No hay ubicación disponible para este pedido" });
-
-    res.json(latestLocation);
+    res.json(deliveryPersonId);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

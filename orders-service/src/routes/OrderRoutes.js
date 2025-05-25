@@ -141,8 +141,6 @@ router.get(
 
 router.get(
   "/tracking/:trackingCode",
-  authenticateJWT,
-  authorize("Order Management", "listar"),
   getOrderByTrackingCode
 );
 

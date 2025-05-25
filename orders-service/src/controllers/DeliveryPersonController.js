@@ -26,6 +26,22 @@ const getDeliveryPersonById = async (req, res) => {
   }
 };
 
+const getDeliveryPersonByUserId = async (req, res) => {
+  const { idUser } = req.params;
+  try {
+    const person = await prisma.deliveryPerson.findFirst({
+      where: { idUser },
+    });
+    if (!person) return res.status(404).json({ error: "Not found" });
+
+    const deliveryPersonId = person.id;
+    res.json(deliveryPersonId);
+  } catch (error) {
+    console.error("Error fetching delivery person by user ID:", error);
+    res.status(500).json({ error: "Failed to fetch delivery person by user ID." });
+  }
+};
+
 const createDeliveryPerson = async (req, res) => {
   const { id, idUser, name, latitude, longitude } = req.body;
   try {
@@ -69,4 +85,5 @@ module.exports = {
   createDeliveryPerson,
   updateDeliveryPerson,
   deleteDeliveryPerson,
+  getDeliveryPersonByUserId
 };

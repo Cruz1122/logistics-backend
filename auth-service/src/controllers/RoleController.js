@@ -33,7 +33,7 @@ const getRoleByName = async (req, res) => {
       include: { permissions: true },
     });
     if (!role) return res.status(404).json({ error: "Role not found" });
-    res.json(role);
+    res.json(role.id ? role : { message: "Role not found" });
   } catch (err) {
     console.error("Error fetching role by name:", err);
     res.status(500).json({ error: "Failed to fetch role by name" });

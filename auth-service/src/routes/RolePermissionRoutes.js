@@ -20,7 +20,7 @@ router.get("/check", authenticateJWT, async (req, res) => {
       where: { roleId, permission: { name: permissionName } },
       select: { [action]: true },
     });
-    return res.json({ allowed: !!(rp && rp[action]) });
+    return res.json({ allowed: !!rp?.[action] });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Error interno" });

@@ -5,6 +5,7 @@ const getAllOrderProducts = async (req, res) => {
     const orderProducts = await prisma.orderProduct.findMany();
     res.json(orderProducts);
   } catch (error) {
+    console.error("Error fetching order products:", error);
     res.status(500).json({ error: "Failed to fetch order products." });
   }
 };
@@ -17,6 +18,7 @@ const getOrderProductById = async (req, res) => {
     if (!orderProduct) return res.status(404).json({ error: "Not found." });
     res.json(orderProduct);
   } catch (error) {
+    console.error("Error fetching order product by ID:", error);
     res.status(500).json({ error: "Failed to fetch order product." });
   }
 };
@@ -43,6 +45,7 @@ const updateOrderProduct = async (req, res) => {
     });
     res.json(updated);
   } catch (error) {
+    console.error("Error updating order product:", error);
     res.status(500).json({ error: "Failed to update order product." });
   }
 };
@@ -52,6 +55,7 @@ const deleteOrderProduct = async (req, res) => {
     await prisma.orderProduct.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: "Order product deleted." });
   } catch (error) {
+    console.error("Error deleting order product:", error);
     res.status(500).json({ error: "Failed to delete order product." });
   }
 };

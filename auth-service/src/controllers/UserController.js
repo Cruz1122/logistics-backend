@@ -77,17 +77,14 @@ const getUserStatusById = async (req, res) => {
 
   try {
     const user = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        isActive: true,
-      },
+      where: { id }
     });
 
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
 
-    res.status(200).json({ user });
+    res.status(200).json({ isActive: user.isActive });
   } catch (error) {
     console.error("Error fetching user status:", error);
     res.status(500).json({ error: "Internal server error." });

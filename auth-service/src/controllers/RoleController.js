@@ -30,7 +30,6 @@ const getRoleByName = async (req, res) => {
   try {
     const role = await prisma.role.findFirst({
       where: { name },
-      include: { permissions: true },
     });
     if (!role) return res.status(404).json({ error: "Role not found" });
     res.json(role.id ? role : { message: "Role not found" });

@@ -122,12 +122,7 @@ async function trackCode(req, res) {
 
     // 1. Consulta orders-service para obtener deliveryPersonId
     const ordersRes = await axios.get(
-      `${process.env.ORDERS_URL}/orders/tracking/${trackingCode}`,
-      {
-        headers: {
-          Authorization: req.headers.authorization || "",
-        },
-      }
+      `${process.env.ORDERS_URL}/orders/tracking/${trackingCode}`
     );
     const order = ordersRes.data;
 

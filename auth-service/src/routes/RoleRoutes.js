@@ -7,6 +7,7 @@ const {
   updateRole,
   deleteRole,
   createRole,
+  getRoleByName,
 } = require("../controllers/RoleController");
 
 /**
@@ -56,6 +57,11 @@ router.get(
   authenticateJWT,
   authorize("Role Management", "listar"),
   getRoleById
+);
+
+router.get(
+  "/name/:name",
+  getRoleByName
 );
 
 /**

@@ -8,6 +8,7 @@ const {
   updateOrder,
   deleteOrder,
   getOrderByTrackingCode,
+  getCoordsByAddress,
 } = require("../controllers/OrderController");
 
 /**
@@ -133,16 +134,22 @@ router.get(
 );
 
 router.get(
+  "/tracking/:trackingCode",
+  getOrderByTrackingCode
+);
+
+router.get(
+  "/coords/:address",
+  getCoordsByAddress
+);
+
+router.get(
   "/:id",
   authenticateJWT,
   authorize("Order Management", "listar"),
   getOrderById
 );
 
-router.get(
-  "/tracking/:trackingCode",
-  getOrderByTrackingCode
-);
 
 router.post(
   "/",

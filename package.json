@@ -11,12 +11,13 @@
     "twilio": "^5.5.2"
   },
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "test:e2e": "cross-env NODE_ENV=test jest test/e2e"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
     "dotenv": "^16.5.0",
     "jest": "^29.7.0",
-    "supertest": "^7.1.0"
+    "supertest": "^7.1.1"
   }
 }

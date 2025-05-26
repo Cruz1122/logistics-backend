@@ -5,6 +5,10 @@ const { generateToken } = require("../utils/jwt");
 const { client } = require("../utils/twilio");
 
 const generateVerificationCode = () => {
+  if (process.env.NODE_ENV === "test") {
+    return "123456"; // Siempre devuelve lo mismo en test
+  }
+
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6 dígitos
 };
 
@@ -16,8 +20,12 @@ const capitalize = (str) => {
     .join(" "); // Une las palabras nuevamente
 };
 
-const generate2FACode = () =>
+const generate2FACode = () => {
+  if (process.env.NODE_ENV === "test") {
+    return "123456"; // Usamos un código fijo en entorno de pruebas
+  }
   Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 const signUp = async (req, res) => {
   const { email, password, name, lastName, phone, roleId, cityId } = req.body;
@@ -35,7 +43,7 @@ const signUp = async (req, res) => {
     if (existingUser) {
       return res.status(409).json({ error: "Email already in use" });
     }
-    
+
 
     if (roleId) {
       const roleExists = await prisma.role.findUnique({ where: { id: roleId } });
@@ -43,7 +51,7 @@ const signUp = async (req, res) => {
         return res.status(422).json({ error: `Invalid roleId: ${roleId}` });
       }
     }
-    
+
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
 
     if (!passwordRegex.test(password)) {
@@ -70,7 +78,6 @@ const signUp = async (req, res) => {
         roleId,
         cityId: cityId || null,
         emailVerified: false,
-        isActive,
         emailCode: emailCode,
         emailCodeExpiresAt,
         createdAt: new Date(),
@@ -319,7 +326,7 @@ const verifyTwoFactor = async (req, res) => {
     const token = generateToken({
       userId: user.id,
       roleId: user.role.id,
-    });    
+    });
 
     res.status(200).json({
       message: "2FA verified successfully.",
@@ -505,18 +512,18 @@ const getUserPermissions = async (req, res) => {
     // Solo incluye los permisos donde al menos uno de los flags es true
     const permissions = rolePermissions
       .filter(
-      (rp) =>
-        rp.listar
+        (rp) =>
+          rp.listar
       )
       .map((rp) => ({
-      permissionId: rp.permissionId,
-      name: rp.permission.name,
-      description: rp.permission.description,
-      listar: rp.listar,
-      eliminar: rp.eliminar,
-      crear: rp.crear,
-      editar: rp.editar,
-      descargar: rp.descargar,
+        permissionId: rp.permissionId,
+        name: rp.permission.name,
+        description: rp.permission.description,
+        listar: rp.listar,
+        eliminar: rp.eliminar,
+        crear: rp.crear,
+        editar: rp.editar,
+        descargar: rp.descargar,
       }));
 
     res.status(200).json({

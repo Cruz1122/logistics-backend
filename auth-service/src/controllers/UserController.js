@@ -94,7 +94,10 @@ const getUserStatusById = async (req, res) => {
 
 const updateUser = async (req, res) => {
   const userId = req.params.id;
-  const { name, lastName, phone, roleId, cityId, isActive} = req.body;
+  const { name, lastName, phone, roleId, cityId, isActive } = req.body;
+  if (!name || !lastName || !phone || !roleId) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
 
   try {
     const updated = await prisma.user.update({
@@ -106,7 +109,7 @@ const updateUser = async (req, res) => {
         roleId,
         isActive,
         updatedAt: new Date(),
-        cityId: cityId || null, // Asignar cityId si se proporciona
+        cityId, // Asegura que cityId se actualice correctamente
       },
     });
 

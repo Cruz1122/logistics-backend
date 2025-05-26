@@ -46,6 +46,23 @@ const getOrderByTrackingCode = async (req, res) => {
   }
 };
 
+const getCoordsByAddress = async (req, res) => {
+  const { address } = req.params;
+  if (!address) {
+    return res.status(400).json({ error: "Address is required." });
+  }
+  try {
+    const coords = await geocode(address);
+    if (!coords) {
+      return res.status(404).json({ error: "Coordinates not found." });
+    }
+    res.json(coords);
+  } catch (error) {
+    console.error("Error fetching coordinates:", error);
+    res.status(500).json({ error: "Failed to fetch coordinates." });
+  }
+};
+
 async function getUser(userId, token) {
   const response = await axios.get(`${process.env.AUTH_URL}/users/${userId}`, {
     headers: { Authorization: token },
@@ -255,6 +272,7 @@ const deleteOrder = async (req, res) => {
   }
 };
 
+
 module.exports = {
   getAllOrders,
   getOrderById,
@@ -262,4 +280,5 @@ module.exports = {
   updateOrder,
   deleteOrder,
   getOrderByTrackingCode,
+  getCoordsByAddress,
 };

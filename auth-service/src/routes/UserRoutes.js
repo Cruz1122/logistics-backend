@@ -61,6 +61,40 @@ router.get(
   getUserById
 );
 
+
+/**
+ * @swagger
+ * /users/status/{id}:
+ *   get:
+ *     summary: Get user's active status by ID
+ *     tags: [Users]
+ *     description: Returns the isActive status of a user. This endpoint is public and does not require authentication.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: UUID of the user
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: User status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 isActive:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Missing user ID
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
 router.get("/status/:id", getUserStatusById);
 
 router.get(
@@ -101,6 +135,8 @@ router.get(
  *                 type: string
  *               roleId:
  *                 type: string
+ *               isActive:
+ *                 type: boolean
  *     responses:
  *       200:
  *         description: User updated

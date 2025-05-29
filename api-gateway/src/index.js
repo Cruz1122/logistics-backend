@@ -41,6 +41,7 @@ app.use(
   createProxyMiddleware({
     target: SERVICES.geo,
     changeOrigin: true,
+    ws: true, // Habilitar WebSocket si es necesario
   })
 );
 

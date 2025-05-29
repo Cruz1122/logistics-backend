@@ -24,7 +24,9 @@ const generate2FACode = () => {
   if (process.env.NODE_ENV === "test") {
     return "123456"; // Usamos un código fijo en entorno de pruebas
   }
-  Math.floor(100000 + Math.random() * 900000).toString();
+  // Generate a 6-digit code, but reverse the digits for extra difference
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  return code.split("").reverse().join("");
 }
 
 const signUp = async (req, res) => {

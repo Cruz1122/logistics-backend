@@ -1,12 +1,18 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 require("dotenv").config();
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const app = express();
 const PORT = process.env.GATEWAY_PORT;
 
-app.get("/", (req, res) => res.send("Gateway is alive!"));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 2. Ruta raíz: devuelve tu status page
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.use(cors({
   origin: "*", // Permitir todas las URLs

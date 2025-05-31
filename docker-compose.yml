@@ -10,7 +10,7 @@ services:
       - geo-service
       - inventory-service
       - orders-service
-      # - reports-service
+      - reports-service
 
   auth-service:
     build: ./auth-service
@@ -67,10 +67,17 @@ services:
     command: >
       sh -c "mongod --bind_ip_all --quiet > /dev/null 2>&1"
 
-  # reports-service:
-  #   build: ./reports-service
-  #   ports:
-  #     - "4005:4005"
+  reports-service:
+    build: ./reports-service
+    ports:
+      - "4005:4005"
+    env_file:
+      - ./.env
+    volumes:
+      - ./reports-service:/app
+    logging:
+      driver: "none"
+
 volumes:
   pgdata:
   geo-data:

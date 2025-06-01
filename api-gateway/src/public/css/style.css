@@ -1,0 +1,222 @@
+/* VARIABLES */
+:root {
+  --color-primary: #016EAD;
+  --color-primary-dark: #005a9e;
+  --color-bg: #f0f2f5;
+  --color-card: #ffffff;
+  --color-text: #333333;
+  --radius: 12px;
+  --font-base: 'Roboto', sans-serif;
+  --transition: 0.3s ease;
+}
+
+/* GLOBAL */
+* {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+}
+body {
+  font-family: var(--font-base);
+  color: var(--color-text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* CONTAINER */
+.wrapper {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* NAVBAR */
+.navbar {
+  background: var(--color-primary);
+  padding: 1rem 0;
+}
+.navbar .wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+}
+.logo span {
+  color: #ffeb3b;
+}
+.navbar nav a {
+  color: #fff;
+  margin-left: 1.5rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition);
+}
+.navbar nav a:hover {
+  color: #ffeb3b;
+}
+.btn-outline {
+  padding: 0.4rem 1rem;
+  border: 2px solid #fff;
+  border-radius: var(--radius);
+}
+
+/* STATUS PAGE */
+.status-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 0;
+}
+/* CARD */
+.card {
+  position: relative;
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  padding: 2rem 1.5rem 1.5rem;
+  max-width: 420px;
+  width: 100%;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* franja superior degradada */
+.card-accent {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 6px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
+}
+
+/* header con icono */
+.card-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+.icon-wrapper {
+  background: var(--color-bg);
+  padding: 0.8rem;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.icon {
+  width: 48px;
+  height: 48px;
+}
+
+/* título y párrafo */
+.card h1 {
+  font-size: 1.9rem;
+  color: var(--color-primary);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+.card p {
+  font-size: 1rem;
+  color: var(--color-text);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+/* lista de estados en grid */
+.status-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0;
+  margin: 0;
+}
+.status-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+}
+.status-list .path {
+  background: #eef1f5;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+/* badges de estado */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.badge.online {
+  background: #e6ffed;
+  color: #28a745;
+}
+.badge.offline {
+  background: #ffe6e6;
+  color: #d73a49;
+}
+
+/* adaptaciones móviles */
+@media (max-width: 480px) {
+  .card {
+    padding: 1.5rem 1rem 1rem;
+  }
+  .status-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+code {
+  background: #eef1f5;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+
+/* BUTTONS */
+.btn-primary {
+  display: inline-block;
+  background: var(--color-primary);
+  color: #fff;
+  padding: 0.8rem 1.5rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-weight: 500;
+  transition: background var(--transition);
+}
+.btn-primary:hover {
+  background: var(--color-primary-dark);
+}
+
+/* FOOTER */
+.footer {
+  background: var(--color-primary-dark);
+  color: #fff;
+  padding: 1rem 0;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* RESPONSIVE */
+@media (max-width: 600px) {
+  .card {
+    padding: 2rem;
+  }
+  .card h1 {
+    font-size: 1.6rem;
+  }
+  .navbar nav a {
+    margin-left: 1rem;
+    font-size: 0.9rem;
+  }
+}

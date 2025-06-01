@@ -13,6 +13,8 @@ const io = new Server(server, {
   cors: {
     origin: "*", // Ajusta el origen según tu frontend
   },
+  path: "/geo/socket.io", // Ruta para WebSocket
+  transports: ["websocket"], // Solo WebSocket
 });
 
 mongoose
@@ -39,7 +41,6 @@ io.on("connection", (socket) => {
 // Exporta io para usar en rutas
 app.set("io", io);
 
-// Aquí monta tus rutas, por ejemplo:
 const locationsRouter = require("./routes/locations");
 app.use("/locations", locationsRouter);
 

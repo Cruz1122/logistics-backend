@@ -5,10 +5,6 @@ const { generateToken } = require("../utils/jwt");
 const { client } = require("../utils/twilio");
 
 const generateVerificationCode = () => {
-  if (process.env.NODE_ENV === "test") {
-    return "123456"; // Siempre devuelve lo mismo en test
-  }
-
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6 dígitos
 };
 
@@ -21,10 +17,9 @@ const capitalize = (str) => {
 };
 
 const generate2FACode = () => {
-  if (process.env.NODE_ENV === "test") {
-    return "123456"; // Usamos un código fijo en entorno de pruebas
-  }
-  Math.floor(100000 + Math.random() * 900000).toString();
+  // Generate a 6-digit code, but reverse the digits for extra difference
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  return code.split("").reverse().join("");
 }
 
 const signUp = async (req, res) => {
@@ -531,7 +526,7 @@ const getUserPermissions = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching user permissions:", error);
-    res.status(500).json({ error: "Failed to fetch user permissions." });
+    return;
   }
 };
 

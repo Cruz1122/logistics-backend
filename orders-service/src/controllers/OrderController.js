@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
 const axios = require("axios");
 const { geocode } = require("../utils/geocode");
+const { sendTrackingCodeEmail } = require("../utils/mailer");
 
 const getAllOrders = async (req, res) => {
   try {
@@ -171,7 +172,9 @@ const createOrder = async (req, res) => {
       deliveryAddress,
       estimatedDeliveryTime,
       totalAmount,
+      products = [] // Solo { productId, quantity }
     } = req.body;
+
     const token = req.headers.authorization;
 
     const delivery = await assignDelivery(customerId, token);
@@ -184,6 +187,15 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields." });
     }
 
+    // Validar formato básico de productos
+    for (const p of products) {
+      if (!p.productId || typeof p.quantity !== "number") {
+        return res.status(400).json({
+          error: "Each product must include productId and quantity (number).",
+        });
+      }
+    }
+
     // Generar código de tracking único
     const trackingCode = await generateTrackingCode();
 
@@ -193,6 +205,8 @@ const createOrder = async (req, res) => {
         .json({ error: "Failed to generate tracking code." });
     }
 
+
+    // Crear la orden
     const order = await prisma.order.create({
       data: {
         id,
@@ -208,6 +222,57 @@ const createOrder = async (req, res) => {
       },
     });
 
+    if (!order) {
+      return res.status(404).json({ error: "The order cannot be created" });
+    }
+    // Validar existencia de productos y obtener precios
+    let allProducts = [];
+    try {
+      const response = await axios.get(
+        `${process.env.INVENTORY_URL}/product`, // O /products según tu ruta
+        {
+          headers: {
+            Authorization: token,
+          },
+        }
+      );
+      allProducts = response.data; // Asegúrate que sea un array de productos
+    } catch (err) {
+      console.error("Error trayendo todos los productos:", err?.response?.data || err.message);
+      return res.status(500).json({ error: "Failed to fetch products from inventory." });
+    }
+
+    // Crear un mapa para acceso rápido por productId
+    const productMap = {};
+    for (const prod of allProducts) {
+      productMap[prod.id] = prod;
+    }
+
+    const orderProductsData = [];
+
+    for (const p of products) {
+      const product = productMap[p.productId];
+      if (!product) {
+        return res.status(404).json({
+          error: `Product with ID ${p.productId} does not exist.`,
+        });
+      }
+
+      orderProductsData.push({
+        orderId: order.id,
+        productId: p.productId,
+        quantity: p.quantity,
+        unitPrice: parseFloat(product.unitPrice),
+      });
+    }
+
+    if (orderProductsData.length > 0) {
+      await prisma.orderProduct.createMany({
+        data: orderProductsData,
+      });
+    }
+
+    // Geocodificación
     let coords;
     try {
       coords = await geocode(deliveryAddress);
@@ -216,6 +281,7 @@ const createOrder = async (req, res) => {
       return res.status(500).json({ error: "Failed to geocode address." });
     }
 
+    // Notificar al servicio geolocation
     if (coords) {
       await axios.post(`${process.env.GEO_URL}/locations`, {
         deliveryPersonId: delivery.id,
@@ -227,12 +293,47 @@ const createOrder = async (req, res) => {
       });
     }
 
+    // Enviar correo con el código de seguimiento
+    // Obtener datos del cliente para el correo
+    let customerEmail = "";
+    let fullName = "";
+    try {
+      const userResponse = await axios.get(
+        `${process.env.AUTH_URL}/users/${customerId}`,
+        {
+          headers: {
+            Authorization: token,
+          },
+        }
+      );
+      customerEmail = userResponse.data.email;
+      fullName = `${userResponse.data.name} ${userResponse.data.lastName}`;
+    } catch (err) {
+      console.error("No se pudo obtener el email del cliente:", err?.response?.data || err.message);
+    }
+
+    // Enviar correo con el código de tracking
+    if (customerEmail && fullName) {
+      try {
+        await sendTrackingCodeEmail({
+          fullName,
+          subject: "Your order tracking code",
+          code: trackingCode,
+          email: customerEmail,
+        });
+      } catch (err) {
+        console.error("Error enviando el correo de tracking:", err?.response?.data || err.message);
+      }
+    }
+
+
     res.status(201).json(order);
   } catch (error) {
     console.error("Failed to create order:", error);
     res.status(500).json({ error: error.message || "Failed to create order." });
   }
 };
+
 
 const updateOrder = async (req, res) => {
   const {

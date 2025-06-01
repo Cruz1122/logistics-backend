@@ -27,9 +27,11 @@ const {
  *     responses:
  *       200:
  *         description: List of orders
- *   post:
+  *   post:
  *     summary: Create a new order
  *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -37,30 +39,57 @@ const {
  *           schema:
  *             type: object
  *             required:
- *               - id
  *               - customerId
  *               - status
  *               - deliveryAddress
+ *               - totalAmount
  *             properties:
- *               id:
- *                 type: string
  *               customerId:
  *                 type: string
- *               deliveryId:
- *                 type: string
+ *                 format: uuid
+ *                 example: "123e4567-e89b-12d3-a456-426614174000"
  *               status:
  *                 type: string
+ *                 example: PENDING
  *               deliveryAddress:
  *                 type: string
+ *                 example: "Calle 123 #45-67"
  *               estimatedDeliveryTime:
  *                 type: string
  *                 format: date-time
+ *                 example: "2025-06-01T20:00:00.000Z"
  *               totalAmount:
  *                 type: number
+ *                 example: 149.99
+ *               products:
+ *                 type: array
+ *                 description: List of products to include in the order
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - productId
+ *                     - quantity
+ *                   properties:
+ *                     productId:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "uuid-product-1"
+ *                     quantity:
+ *                       type: integer
+ *                       example: 2
+ *                    
  *     responses:
  *       201:
- *         description: Order created
+ *         description: Order created successfully
+ *       400:
+ *         description: Bad request – missing or invalid data
+ *       403:
+ *         description: Forbidden – insufficient permissions
+ *       500:
+ *         description: Internal server error
  */
+
+
 
 /**
  * @swagger

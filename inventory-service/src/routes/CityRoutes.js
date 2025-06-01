@@ -108,14 +108,10 @@ const CityController = require("../controllers/CityController");
 
 router.get(
   "/",
-  authenticateJWT,
-  authorize("City Management", "listar"),
   CityController.getAll
 );
 router.get(
   "/:id",
-  authenticateJWT,
-  authorize("City Management", "listar"),
   CityController.getById
 );
 router.post(

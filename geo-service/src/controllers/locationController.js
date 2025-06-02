@@ -2,8 +2,8 @@ const Location = require("../models/Location");
 const axios = require("axios");
 const GOOGLE_GEOCODE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 let pLimit;
+
 // Dynamically import p-limit to avoid issues with ESM in Node.js
-// This is done to ensure compatibility with the latest Node.js versions
 (async () => {
   pLimit = (await import("p-limit")).default;
 })();
@@ -27,8 +27,8 @@ async function getLocations(req, res) {
     return res.status(400).json({ error: "deliveryPersonId is required" });
   }
 
-  const filter = deliveryPersonId ? { deliveryPersonId } : {};
-  const list = await Location.find(filter).limit(100);
+  const filter = { deliveryPersonId };
+  const list = await Location.find(filter).sort({ timestamp: -1 }).limit(100);
 
   if (!list || list.length === 0) {
     return res.status(404).json({ error: "No locations found." });
@@ -39,34 +39,66 @@ async function getLocations(req, res) {
 // Helper to check if should geocode based on distance and previous address
 function shouldGeocodeLocation(loc, uniqueAddresses, locations) {
   if (uniqueAddresses.length === 0) return true;
+
+  const prevTimestamp =
+    uniqueAddresses[uniqueAddresses.length - 1].timestamp.getTime();
   const prevLoc = locations.find(
-    l => l.timestamp.getTime() === uniqueAddresses[uniqueAddresses.length - 1].timestamp.getTime()
+    (l) => l.timestamp.getTime() === prevTimestamp
   );
+
   if (!prevLoc) return true;
+
   const [lng, lat] = loc.location.coordinates;
   const [prevLng, prevLat] = prevLoc.location.coordinates;
   const distance = Math.sqrt(
     Math.pow(lat - prevLat, 2) + Math.pow(lng - prevLng, 2)
   );
-  // Approximately 0.0003 degrees ~ 30 meters
+  // Aprox. 0.0003 grados ~ 30 metros
   return distance >= 0.0003;
 }
 
-// Helper to geocode lat/lng
+// Helper to reverse geocode lat/lng y asegurar que sea en Colombia
 async function reverseGeocode(lat, lng) {
-  const { data } = await axios.get(
-    `https://maps.googleapis.com/maps/api/geocode/json`,
-    {
-      params: {
-        latlng: `${lat},${lng}`,
-        key: GOOGLE_GEOCODE_API_KEY,
-      },
+  try {
+    const { data } = await axios.get(
+      `https://maps.googleapis.com/maps/api/geocode/json`,
+      {
+        params: {
+          latlng: `${lat},${lng}`,
+          key: GOOGLE_GEOCODE_API_KEY,
+        },
+      }
+    );
+
+    if (
+      !data ||
+      data.status !== "OK" ||
+      !data.results ||
+      data.results.length === 0
+    ) {
+      return null;
     }
-  );
-  return data?.results?.[0]?.formatted_address || "Unknown";
+
+    // Buscar el primer resultado que incluya "Colombia" en address_components
+    for (const result of data.results) {
+      const countryComponent = result.address_components.find((ac) =>
+        ac.types.includes("country")
+      );
+      if (countryComponent && countryComponent.long_name === "Colombia") {
+        return result.formatted_address;
+      }
+    }
+
+    // Ningún resultado pertenecía a Colombia
+    return null;
+  } catch (err) {
+    console.error("reverseGeocode error:", err.message);
+    return null;
+  }
 }
 
-// Gets the geocoded location history of a delivery person
+// GET /locations/geocoded-history?deliveryPersonId=...
+// Obtiene el historial de ubicaciones geocodificadas de un repartidor filtrando sólo Colombia
 async function getGeocodedLocationHistory(req, res) {
   const { deliveryPersonId } = req.query;
 
@@ -75,27 +107,27 @@ async function getGeocodedLocationHistory(req, res) {
   }
 
   try {
-    // 1. Get last 100 locations for the delivery person
+    // 1. Obtener las últimas 100 ubicaciones del repartidor (ordenadas ascendente por timestamp)
     const locations = await Location.find({ deliveryPersonId })
-      .sort({ timestamp: 1 }) // oldest first
+      .sort({ timestamp: 1 })
       .limit(100);
 
     if (!locations || locations.length === 0) {
       return res.status(404).json({ error: "No locations found." });
     }
 
-    // 2. Reverse geocoding
+    // 2. Iterar y hacer reverse geocode sólo si cambia mucho (distance >= 30m)
     const uniqueAddresses = [];
     let lastAddress = null;
 
-    // Iterate through locations and geocode if necessary
-    // Use a Set to track unique addresses
     for (const loc of locations) {
       const [lng, lat] = loc.location.coordinates;
 
       if (shouldGeocodeLocation(loc, uniqueAddresses, locations)) {
         const address = await reverseGeocode(lat, lng);
-        if (address !== lastAddress) {
+
+        // Si la dirección es null o no pertenece a Colombia, la descartamos
+        if (address && address !== lastAddress) {
           uniqueAddresses.push({
             address,
             timestamp: loc.timestamp,
@@ -105,12 +137,16 @@ async function getGeocodedLocationHistory(req, res) {
       }
     }
 
+    if (uniqueAddresses.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No valid Colombian addresses found." });
+    }
+
     res.json(uniqueAddresses);
   } catch (err) {
-    console.error("Error:", err.message);
-    res
-      .status(500)
-      .json({ error: "Error processing location history." });
+    console.error("Error in getGeocodedLocationHistory:", err.message);
+    res.status(500).json({ error: "Error processing location history." });
   }
 }
 
@@ -135,21 +171,34 @@ async function getLocationsNear(req, res) {
   }).limit(50);
 
   if (!points || points.length === 0) {
-    return res
-      .status(404)
-      .json({ error: "No nearby locations found." });
+    return res.status(404).json({ error: "No nearby locations found." });
   }
   res.json(points);
 }
 
-// Updates a delivery person's location
-// This function updates the location of a delivery person and emits an event to notify clients
+// Updates a delivery person's location y emite el evento WebSocket
 async function updateLocation(req, res) {
   try {
     const { deliveryPersonId, location } = req.body;
     if (!deliveryPersonId || !location?.coordinates) {
+      console.warn(
+        `[updateLocation] Missing data. deliveryPersonId: ${deliveryPersonId}, location: ${JSON.stringify(
+          location
+        )}`
+      );
       return res.status(400).json({ error: "Missing required data." });
     }
+
+    // Extraer IP del cliente (puede variar según proxys)
+    const clientIp =
+      req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+
+    // Log coordenadas y contexto
+    console.log(`[updateLocation] DeliveryPersonId: ${deliveryPersonId}`);
+    console.log(`[updateLocation] Coordinates: ${location.coordinates}`);
+    console.log(`[updateLocation] Timestamp: ${new Date().toISOString()}`);
+    console.log(`[updateLocation] Client IP: ${clientIp}`);
+    console.log(`[updateLocation] User-Agent: ${req.headers["user-agent"]}`);
 
     const loc = new Location({
       deliveryPersonId,
@@ -159,10 +208,7 @@ async function updateLocation(req, res) {
 
     await loc.save();
 
-    // Get the io object from the request
     const io = req.app.get("io");
-
-    // Emit event to all clients subscribed to this deliveryPersonId
     io.to(deliveryPersonId).emit("locationUpdate", {
       deliveryPersonId,
       location,
@@ -171,10 +217,12 @@ async function updateLocation(req, res) {
 
     res.status(200).json({ message: "Location updated." });
   } catch (error) {
+    console.error("[updateLocation] Error:", error);
     res.status(500).json({ error: error.message });
   }
 }
-  
+
+
 // Gets the latest location of a delivery person by deliveryPersonId
 async function getLatestLocation(req, res) {
   try {
@@ -183,7 +231,6 @@ async function getLatestLocation(req, res) {
       return res.status(400).json({ error: "deliveryPersonId is required" });
     }
 
-    // Get the latest location (sorted descending by timestamp)
     const latestLocation = await Location.findOne({ deliveryPersonId })
       .sort({ timestamp: -1 })
       .exec();
@@ -207,24 +254,19 @@ async function trackCode(req, res) {
     if (!trackingCode) {
       return res.status(400).json({ error: "trackingCode is required" });
     }
-
-    // Query orders-service to get deliveryPersonId
     const ordersRes = await axios.get(
       `${process.env.ORDERS_URL}/orders/tracking/${trackingCode}`
     );
     const order = ordersRes.data;
-
-    if (!order)
-      return res.status(404).json({ error: "Invalid tracking code" });
-
+    if (!order) return res.status(404).json({ error: "Invalid tracking code" });
     const deliveryPersonId = order.deliveryId;
     res.json(deliveryPersonId);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-};
+}
 
-// Function to get orders and geocode their addresses
+// Function to get orders and geocode their addresses (filtered to Colombia)
 async function getOrdersWithCoords(req, res) {
   try {
     console.log("Querying orders from orders-service...");
@@ -237,16 +279,16 @@ async function getOrdersWithCoords(req, res) {
     const orders = ordersResponse.data;
     console.log(`Orders obtained: ${orders.length}`);
 
-    const ordersWithAddress = orders.filter((o) => o.deliveryAddress?.trim());
-
-    console.log("Starting geocoding...");
-    // Limit concurrency to avoid hitting API rate limits
+    const ordersWithAddress = orders.filter(
+      (o) => o.deliveryAddress?.trim() && o.status.toLowerCase() !== "delivered"
+    );
+    console.log("Starting geocoding of orders...");
     const limit = pLimit(5);
 
-    // Geocode each order's delivery address in parallel
     const geocodedOrders = await Promise.all(
       ordersWithAddress.map((order) =>
         limit(async () => {
+          // Forzar componente a Colombia
           const geo = await geocodeAddress(order.deliveryAddress);
           if (geo) {
             return {
@@ -260,7 +302,6 @@ async function getOrdersWithCoords(req, res) {
         })
       )
     );
-    console.log("Geocoding completed.");
 
     const filtered = geocodedOrders.filter((o) => o !== null);
     console.log(`Geocoded orders: ${filtered.length}`);
@@ -271,12 +312,13 @@ async function getOrdersWithCoords(req, res) {
   }
 }
 
-// Function to geocode an address using Google Maps Geocoding API
+// Function to geocode an address usando Google Maps Geocoding API (forzado a country:CO)
 async function geocodeAddress(address) {
   const url = "https://maps.googleapis.com/maps/api/geocode/json";
   const params = {
     address,
     key: GOOGLE_GEOCODE_API_KEY,
+    components: "country:CO", // <-- sólo resultados en Colombia
   };
   try {
     const response = await axios.get(url, { params });
@@ -314,14 +356,12 @@ async function getWarehousesCoords(req, res) {
     const warehouses = warehousesResponse.data;
     console.log(`Warehouses obtained: ${warehouses.length}`);
 
-    // Each warehouse has 'latitude' and 'longitude' as separate attributes
-    // Filter warehouses that have valid latitude and longitude
     const warehousesWithCoords = warehouses
       .filter((w) => w.latitude != null && w.longitude != null)
       .map((w) => ({
-      warehouseId: w.id,
-      lat: Number(w.latitude),
-      lng: Number(w.longitude),
+        warehouseId: w.id,
+        lat: Number(w.latitude),
+        lng: Number(w.longitude),
       }));
 
     console.log(`Warehouses with valid coords: ${warehousesWithCoords.length}`);
@@ -337,7 +377,7 @@ async function getDeliveriesCoords(req, res) {
   try {
     console.log("Starting request to deliveries...");
 
-    // 1. Get all delivery persons from orders-service
+    // 1. Obtener todos los repartidores desde orders-service
     const deliveriesResponse = await axios.get(
       `${process.env.ORDERS_URL}/delivery-persons/`,
       {
@@ -347,7 +387,7 @@ async function getDeliveriesCoords(req, res) {
     const deliveries = deliveriesResponse.data;
     console.log(`Deliveries obtained: ${deliveries.length}`);
 
-    // 2. Get all users
+    // 2. Obtener todos los usuarios
     const usersResponse = await axios.get(
       `${process.env.AUTH_URL}/users/users/`,
       {
@@ -356,22 +396,21 @@ async function getDeliveriesCoords(req, res) {
     );
     const users = usersResponse.data;
 
-    // 3. Filter active users and get their IDs
+    // 3. Filtrar usuarios activos y obtener sus IDs
     const activeUserIds = new Set(
       users.filter((u) => u.isActive).map((u) => u.id)
     );
 
-    // 4. Filter deliveries that are associated with active users
-    const activeDeliveries = deliveries.filter(
-      (d) => activeUserIds.has(d.idUser) 
+    // 4. Filtrar repartidores asociados a usuarios activos
+    const activeDeliveries = deliveries.filter((d) =>
+      activeUserIds.has(d.idUser)
     );
-
     const deliveryIds = activeDeliveries.map((d) => d.id);
 
-    // 5. Get latest locations in batch
+    // 5. Obtener ubicaciones más recientes en batch
     const latestLocationsMap = await getLatestLocationsBatch(deliveryIds);
 
-    // 6. Build array with data and coords
+    // 6. Construir array con datos y coords
     const deliveriesWithCoords = activeDeliveries
       .map((delivery) => {
         const latest = latestLocationsMap[delivery.id];
@@ -398,32 +437,26 @@ async function getDeliveriesCoords(req, res) {
   }
 }
 
-
-// Receives an array of deliveryPersonId and returns the latest location of each
+// Batch para obtener últimas ubicaciones
 async function getLatestLocationsBatch(deliveryPersonIds) {
-  // Query to get the latest location of each deliveryPersonId
-  // We use MongoDB aggregation to group and get the latest by timestamp
   const pipeline = [
     { $match: { deliveryPersonId: { $in: deliveryPersonIds } } },
-    {
-      $sort: { deliveryPersonId: 1, timestamp: -1 } // sort to get the most recent first
-    },
+    { $sort: { deliveryPersonId: 1, timestamp: -1 } },
     {
       $group: {
         _id: "$deliveryPersonId",
         location: { $first: "$location" },
         timestamp: { $first: "$timestamp" },
-      }
-    }
+      },
+    },
   ];
 
-  const results = await Location.aggregate(pipeline); // results will be an array with objects {_id: deliveryPersonId, location, timestamp}
-
+  const results = await Location.aggregate(pipeline);
   const locationsMap = {};
   results.forEach(({ _id, location, timestamp }) => {
     locationsMap[_id] = { location, timestamp };
   });
-  return locationsMap; // { deliveryPersonId: {location, timestamp}, ... }
+  return locationsMap;
 }
 
 module.exports = {

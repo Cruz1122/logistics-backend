@@ -278,27 +278,6 @@ const createOrder = async (req, res) => {
       });
     }
 
-    // Geocodificación
-    let coords;
-    try {
-      coords = await geocode(deliveryAddress);
-    } catch (error) {
-      console.error("Error geocoding address:", error);
-      return res.status(500).json({ error: "Failed to geocode address." });
-    }
-
-    // Notificar al servicio geolocation
-    if (coords) {
-      await axios.post(`${process.env.GEO_URL}/locations`, {
-        deliveryPersonId: delivery.id,
-        orderId: order.id,
-        location: {
-          type: "Point",
-          coordinates: [coords.lng, coords.lat],
-        },
-      });
-    }
-
     // Enviar correo con el código de seguimiento
     let customerEmail = "";
     let fullName = "";

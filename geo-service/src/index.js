@@ -9,36 +9,43 @@ app.use(cors());
 app.use(express.json());
 
 const server = http.createServer(app);
+
+// Setup Socket.IO server
 const io = new Server(server, {
   cors: {
-    origin: "*", // Ajusta el origen según tu frontend
+    origin: "*",
   },
-  path: "/geo/socket.io", // Ruta para WebSocket
-  transports: ["websocket"], // Solo WebSocket
+  path: "/geo/socket.io", // Path for WebSocket
+  transports: ["websocket"], // Only WebSocket
 });
 
+// Connect to MongoDB Database
 mongoose
   .connect(process.env.GEO_DATABASE_URL)
   .then(() => console.log("Mongo connected successfully to Geo Service"))
   .catch((err) => console.error("Mongo connection error:", err));
 
+// Handle WebSocket connections
 io.on("connection", (socket) => {
-  console.log("Cliente conectado:", socket.id);
+  console.log("Client connected:", socket.id);
 
+  // Listen for subscription requests
+  // This allows delivery persons to subscribe to their own updates
   socket.on("subscribe", (data) => {
     const { deliveryPersonId } = data;
     if (deliveryPersonId) {
       socket.join(deliveryPersonId);
-      console.log(`Socket ${socket.id} suscrito a ${deliveryPersonId}`);
+      console.log(`Socket ${socket.id} subscribed to ${deliveryPersonId}`);
     }
   });
 
+  // Handle disconnection
   socket.on("disconnect", () => {
-    console.log("Cliente desconectado:", socket.id);
+    console.log("Client disconnected:", socket.id);
   });
 });
 
-// Exporta io para usar en rutas
+// Export io for use in routes
 app.set("io", io);
 
 const locationsRouter = require("./routes/locations");

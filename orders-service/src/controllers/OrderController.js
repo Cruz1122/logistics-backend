@@ -171,7 +171,6 @@ const createOrder = async (req, res) => {
       status,
       deliveryAddress,
       estimatedDeliveryTime,
-      totalAmount,
       products = [] // Solo { productId, quantity }
     } = req.body;
 
@@ -183,7 +182,7 @@ const createOrder = async (req, res) => {
       return res.status(404).json({ error: "No delivery person available." });
     }
 
-    if (!customerId || !status || !deliveryAddress || !totalAmount) {
+    if (!customerId || !status || !deliveryAddress) {
       return res.status(400).json({ error: "Missing required fields." });
     }
 
@@ -205,8 +204,52 @@ const createOrder = async (req, res) => {
         .json({ error: "Failed to generate tracking code." });
     }
 
+    // Obtener todos los productos del inventario
+    let allProducts = [];
+    try {
+      const response = await axios.get(
+        `${process.env.INVENTORY_URL}/product`, 
+        {
+          headers: {
+            Authorization: token,
+          },
+        }
+      );
+      allProducts = response.data;
+    } catch (err) {
+      console.error("Error trayendo todos los productos:", err?.response?.data || err.message);
+      return res.status(500).json({ error: "Failed to fetch products from inventory." });
+    }
 
-    // Crear la orden
+    // Crear un mapa para acceso rápido por productId
+    const productMap = {};
+    for (const prod of allProducts) {
+      productMap[prod.id] = prod;
+    }
+
+    // Calcular totalAmount y preparar orderProductsData
+    let totalAmount = 0;
+    const orderProductsData = [];
+    for (const p of products) {
+      const product = productMap[p.productId];
+      if (!product) {
+        return res.status(404).json({
+          error: `Product with ID ${p.productId} does not exist.`,
+        });
+      }
+
+      const unitPrice = parseFloat(product.unitPrice);
+      totalAmount += unitPrice * p.quantity;
+
+      orderProductsData.push({
+        orderId: id, // Usamos el id de la orden
+        productId: p.productId,
+        quantity: p.quantity,
+        unitPrice: unitPrice,
+      });
+    }
+
+    // Crear la orden con el totalAmount calculado
     const order = await prisma.order.create({
       data: {
         id,
@@ -225,48 +268,11 @@ const createOrder = async (req, res) => {
     if (!order) {
       return res.status(404).json({ error: "The order cannot be created" });
     }
-    // Validar existencia de productos y obtener precios
-    let allProducts = [];
-    try {
-      const response = await axios.get(
-        `${process.env.INVENTORY_URL}/product`, // O /products según tu ruta
-        {
-          headers: {
-            Authorization: token,
-          },
-        }
-      );
-      allProducts = response.data; // Asegúrate que sea un array de productos
-    } catch (err) {
-      console.error("Error trayendo todos los productos:", err?.response?.data || err.message);
-      return res.status(500).json({ error: "Failed to fetch products from inventory." });
-    }
 
-    // Crear un mapa para acceso rápido por productId
-    const productMap = {};
-    for (const prod of allProducts) {
-      productMap[prod.id] = prod;
-    }
-
-    const orderProductsData = [];
-
-    for (const p of products) {
-      const product = productMap[p.productId];
-      if (!product) {
-        return res.status(404).json({
-          error: `Product with ID ${p.productId} does not exist.`,
-        });
-      }
-
-      orderProductsData.push({
-        orderId: order.id,
-        productId: p.productId,
-        quantity: p.quantity,
-        unitPrice: parseFloat(product.unitPrice),
-      });
-    }
-
+    // Insertar productos de la orden
     if (orderProductsData.length > 0) {
+      // Asigna el orderId real si usas autogenerado
+      orderProductsData.forEach(op => op.orderId = order.id);
       await prisma.orderProduct.createMany({
         data: orderProductsData,
       });
@@ -294,7 +300,6 @@ const createOrder = async (req, res) => {
     }
 
     // Enviar correo con el código de seguimiento
-    // Obtener datos del cliente para el correo
     let customerEmail = "";
     let fullName = "";
     try {
@@ -312,7 +317,6 @@ const createOrder = async (req, res) => {
       console.error("No se pudo obtener el email del cliente:", err?.response?.data || err.message);
     }
 
-    // Enviar correo con el código de tracking
     if (customerEmail && fullName) {
       try {
         await sendTrackingCodeEmail({
@@ -326,14 +330,12 @@ const createOrder = async (req, res) => {
       }
     }
 
-
     res.status(201).json(order);
   } catch (error) {
     console.error("Failed to create order:", error);
     res.status(500).json({ error: error.message || "Failed to create order." });
   }
 };
-
 
 const updateOrder = async (req, res) => {
   const {

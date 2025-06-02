@@ -58,9 +58,6 @@ const {
  *                 type: string
  *                 format: date-time
  *                 example: "2025-06-01T20:00:00.000Z"
- *               totalAmount:
- *                 type: number
- *                 example: 149.99
  *               products:
  *                 type: array
  *                 description: List of products to include in the order

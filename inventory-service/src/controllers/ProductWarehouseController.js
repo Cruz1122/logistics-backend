@@ -259,4 +259,53 @@ module.exports = {
       res.status(500).json({ error: "Failed to soft delete record" });
     }
   },
+  // PATCH: Decrement stock for a product in a warehouse
+  async decrementStock(req, res) {
+    const { productId, quantity, performedById } = req.body;
+
+    if (!productId || typeof quantity !== "number" || quantity <= 0) {
+      return res.status(400).json({ error: "productId and positive quantity are required" });
+    }
+
+    try {
+      // Busca el primer almacén con ese productId y suficiente stock
+      const productWarehouse = await prisma.productWarehouse.findFirst({
+        where: {
+          productId,
+          stockQuantity: { gte: quantity },
+          deletedAt: null,
+        },
+      });
+
+      if (!productWarehouse) {
+        return res.status(404).json({ error: "No warehouse found with enough stock for this productId" });
+      }
+
+      const newStock = productWarehouse.stockQuantity - quantity;
+
+      // Actualiza el stock
+      const updated = await prisma.productWarehouse.update({
+        where: { id: productWarehouse.id },
+        data: { stockQuantity: newStock },
+      });
+
+      // Registrar movimiento de stock
+      await registerMovement({
+        productWarehouseId: productWarehouse.id,
+        movementType: "DECREMENT",
+        quantityMoved: -quantity,
+        stockAfter: newStock,
+        performedById: performedById || null,
+        notes: "Descuento de stock por pedido",
+      });
+
+      await sendLowStockAlert(updated, req);
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error decrementing stock:", error);
+      res.status(500).json({ error: "Failed to decrement stock" });
+    }
+  },
+
 };

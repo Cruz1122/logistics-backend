@@ -2,11 +2,13 @@ const Location = require("../models/Location");
 const axios = require("axios");
 const GOOGLE_GEOCODE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 let pLimit;
+// Dynamically import p-limit to avoid issues with ESM in Node.js
+// This is done to ensure compatibility with the latest Node.js versions
 (async () => {
   pLimit = (await import("p-limit")).default;
 })();
 
-// POST /locations – guarda nueva posición
+// POST /locations – saves a new location
 async function createLocation(req, res) {
   try {
     const loc = new Location(req.body);
@@ -17,19 +19,19 @@ async function createLocation(req, res) {
   }
 }
 
-// GET /locations – lista o filtra por repartidor
+// GET /locations – lists or filters by delivery person
 async function getLocations(req, res) {
   const { deliveryPersonId } = req.query;
 
   if (!deliveryPersonId) {
-    return res.status(400).json({ error: "deliveryPersonId es requerido" });
+    return res.status(400).json({ error: "deliveryPersonId is required" });
   }
 
   const filter = deliveryPersonId ? { deliveryPersonId } : {};
   const list = await Location.find(filter).limit(100);
 
   if (!list || list.length === 0) {
-    return res.status(404).json({ error: "No se encontraron ubicaciones." });
+    return res.status(404).json({ error: "No locations found." });
   }
   res.json(list);
 }
@@ -46,7 +48,7 @@ function shouldGeocodeLocation(loc, uniqueAddresses, locations) {
   const distance = Math.sqrt(
     Math.pow(lat - prevLat, 2) + Math.pow(lng - prevLng, 2)
   );
-  // Aproximadamente 0.0003 grados ~ 30 metros
+  // Approximately 0.0003 degrees ~ 30 meters
   return distance >= 0.0003;
 }
 
@@ -61,31 +63,33 @@ async function reverseGeocode(lat, lng) {
       },
     }
   );
-  return data?.results?.[0]?.formatted_address || "Desconocido";
+  return data?.results?.[0]?.formatted_address || "Unknown";
 }
 
-// GET /locations/geohistory?deliveryPersonId=UUID
+// Gets the geocoded location history of a delivery person
 async function getGeocodedLocationHistory(req, res) {
   const { deliveryPersonId } = req.query;
 
   if (!deliveryPersonId) {
-    return res.status(400).json({ error: "deliveryPersonId es requerido" });
+    return res.status(400).json({ error: "deliveryPersonId is required" });
   }
 
   try {
-    // 1. Obtener ubicaciones ordenadas por fecha ascendente
+    // 1. Get last 100 locations for the delivery person
     const locations = await Location.find({ deliveryPersonId })
-      .sort({ timestamp: 1 }) // más antiguas primero
+      .sort({ timestamp: 1 }) // oldest first
       .limit(100);
 
     if (!locations || locations.length === 0) {
-      return res.status(404).json({ error: "No se encontraron ubicaciones." });
+      return res.status(404).json({ error: "No locations found." });
     }
 
-    // 2. Inversa geocodificación
+    // 2. Reverse geocoding
     const uniqueAddresses = [];
     let lastAddress = null;
 
+    // Iterate through locations and geocode if necessary
+    // Use a Set to track unique addresses
     for (const loc of locations) {
       const [lng, lat] = loc.location.coordinates;
 
@@ -103,19 +107,19 @@ async function getGeocodedLocationHistory(req, res) {
 
     res.json(uniqueAddresses);
   } catch (err) {
-    console.error("Error en geohistory:", err.message);
+    console.error("Error:", err.message);
     res
       .status(500)
-      .json({ error: "Error procesando el historial de ubicaciones." });
+      .json({ error: "Error processing location history." });
   }
 }
 
-// GET /locations/near – ubicaciones cercanas a un punto
+// Locations near a given point
 async function getLocationsNear(req, res) {
   const { lng, lat, maxDistance = 500 } = req.query;
 
   if (!lng || !lat) {
-    return res.status(400).json({ error: "lng y lat son requeridos." });
+    return res.status(400).json({ error: "lng and lat are required." });
   }
 
   const points = await Location.find({
@@ -133,16 +137,18 @@ async function getLocationsNear(req, res) {
   if (!points || points.length === 0) {
     return res
       .status(404)
-      .json({ error: "No se encontraron ubicaciones cercanas." });
+      .json({ error: "No nearby locations found." });
   }
   res.json(points);
 }
 
+// Updates a delivery person's location
+// This function updates the location of a delivery person and emits an event to notify clients
 async function updateLocation(req, res) {
   try {
     const { deliveryPersonId, location } = req.body;
     if (!deliveryPersonId || !location?.coordinates) {
-      return res.status(400).json({ error: "Faltan datos requeridos." });
+      return res.status(400).json({ error: "Missing required data." });
     }
 
     const loc = new Location({
@@ -153,31 +159,31 @@ async function updateLocation(req, res) {
 
     await loc.save();
 
-    // Obtén el objeto io desde el request
+    // Get the io object from the request
     const io = req.app.get("io");
 
-    // Emite evento a todos los clientes suscritos a este deliveryPersonId
+    // Emit event to all clients subscribed to this deliveryPersonId
     io.to(deliveryPersonId).emit("locationUpdate", {
       deliveryPersonId,
       location,
       timestamp: loc.timestamp,
     });
 
-    res.status(200).json({ message: "Ubicación actualizada." });
+    res.status(200).json({ message: "Location updated." });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 }
   
-
+// Gets the latest location of a delivery person by deliveryPersonId
 async function getLatestLocation(req, res) {
   try {
     const { deliveryPersonId } = req.query;
     if (!deliveryPersonId) {
-      return res.status(400).json({ error: "deliveryPersonId es requerido" });
+      return res.status(400).json({ error: "deliveryPersonId is required" });
     }
 
-    // Obtiene la última ubicación (orden descendente por timestamp)
+    // Get the latest location (sorted descending by timestamp)
     const latestLocation = await Location.findOne({ deliveryPersonId })
       .sort({ timestamp: -1 })
       .exec();
@@ -185,7 +191,7 @@ async function getLatestLocation(req, res) {
     if (!latestLocation) {
       return res
         .status(404)
-        .json({ error: "No se encontró ubicación para ese repartidor" });
+        .json({ error: "No location found for this delivery person" });
     }
 
     res.json(latestLocation);
@@ -194,21 +200,22 @@ async function getLatestLocation(req, res) {
   }
 }
 
+// Returns the delivery person ID by tracking code
 async function trackCode(req, res) {
   try {
     const { trackingCode } = req.query;
     if (!trackingCode) {
-      return res.status(400).json({ error: "trackingCode es requerido" });
+      return res.status(400).json({ error: "trackingCode is required" });
     }
 
-    // 1. Consulta orders-service para obtener deliveryPersonId
+    // Query orders-service to get deliveryPersonId
     const ordersRes = await axios.get(
       `${process.env.ORDERS_URL}/orders/tracking/${trackingCode}`
     );
     const order = ordersRes.data;
 
     if (!order)
-      return res.status(404).json({ error: "Código de tracking no válido" });
+      return res.status(404).json({ error: "Invalid tracking code" });
 
     const deliveryPersonId = order.deliveryId;
     res.json(deliveryPersonId);
@@ -217,10 +224,10 @@ async function trackCode(req, res) {
   }
 };
 
-// Función que obtiene los pedidos y geocodifica sus direcciones
+// Function to get orders and geocode their addresses
 async function getOrdersWithCoords(req, res) {
   try {
-    console.log("Iniciando petición a orders...");
+    console.log("Querying orders from orders-service...");
     const ordersResponse = await axios.get(
       `${process.env.ORDERS_URL}/orders/`,
       {
@@ -228,12 +235,15 @@ async function getOrdersWithCoords(req, res) {
       }
     );
     const orders = ordersResponse.data;
-    console.log(`Pedidos obtenidos: ${orders.length}`);
+    console.log(`Orders obtained: ${orders.length}`);
 
     const ordersWithAddress = orders.filter((o) => o.deliveryAddress?.trim());
 
-    console.log("Iniciando geocodificación...");
+    console.log("Starting geocoding...");
+    // Limit concurrency to avoid hitting API rate limits
     const limit = pLimit(5);
+
+    // Geocode each order's delivery address in parallel
     const geocodedOrders = await Promise.all(
       ordersWithAddress.map((order) =>
         limit(async () => {
@@ -250,17 +260,18 @@ async function getOrdersWithCoords(req, res) {
         })
       )
     );
-    console.log("Geocodificación finalizada.");
+    console.log("Geocoding completed.");
 
     const filtered = geocodedOrders.filter((o) => o !== null);
-    console.log(`Pedidos geocodificados: ${filtered.length}`);
+    console.log(`Geocoded orders: ${filtered.length}`);
     return res.json(filtered);
   } catch (error) {
-    console.error("Error obteniendo pedidos con coords:", error.message);
+    console.error("Error querying orders with coords:", error.message);
     return res.status(500).json({ error: error.message });
   }
 }
 
+// Function to geocode an address using Google Maps Geocoding API
 async function geocodeAddress(address) {
   const url = "https://maps.googleapis.com/maps/api/geocode/json";
   const params = {
@@ -281,18 +292,19 @@ async function geocodeAddress(address) {
         formattedAddress: response.data.results[0].formatted_address,
       };
     } else {
-      console.warn(`No se pudo geocodificar: ${address}`);
+      console.warn(`Could not geocode: ${address}`);
       return null;
     }
   } catch (error) {
-    console.error(`Error geocodificando dirección: ${address}`, error.message);
+    console.error(`Error geocoding address: ${address}`, error.message);
     return null;
   }
 }
 
+// Function to get warehouses with coordinates
 async function getWarehousesCoords(req, res) {
   try {
-    console.log("Iniciando petición a almacenes...");
+    console.log("Starting request to warehouses...");
     const warehousesResponse = await axios.get(
       `${process.env.INVENTORY_URL}/warehouse`,
       {
@@ -300,9 +312,10 @@ async function getWarehousesCoords(req, res) {
       }
     );
     const warehouses = warehousesResponse.data;
-    console.log(`Almacenes obtenidos: ${warehouses.length}`);
+    console.log(`Warehouses obtained: ${warehouses.length}`);
 
-    // Cada almacén tiene 'latitude' y 'longitude' como atributos separados
+    // Each warehouse has 'latitude' and 'longitude' as separate attributes
+    // Filter warehouses that have valid latitude and longitude
     const warehousesWithCoords = warehouses
       .filter((w) => w.latitude != null && w.longitude != null)
       .map((w) => ({
@@ -311,19 +324,20 @@ async function getWarehousesCoords(req, res) {
       lng: Number(w.longitude),
       }));
 
-    console.log(`Almacenes con coords válidas: ${warehousesWithCoords.length}`);
+    console.log(`Warehouses with valid coords: ${warehousesWithCoords.length}`);
     return res.json(warehousesWithCoords);
   } catch (error) {
-    console.error("Error obteniendo almacenes con coords:", error.message);
+    console.error("Error querying warehouses with coords:", error.message);
     return res.status(500).json({ error: error.message });
   }
 }
 
+// Function to get deliveries with coordinates
 async function getDeliveriesCoords(req, res) {
   try {
-    console.log("Iniciando petición a deliveries...");
+    console.log("Starting request to deliveries...");
 
-    // 1. Obtener todos los delivery persons
+    // 1. Get all delivery persons from orders-service
     const deliveriesResponse = await axios.get(
       `${process.env.ORDERS_URL}/delivery-persons/`,
       {
@@ -331,9 +345,9 @@ async function getDeliveriesCoords(req, res) {
       }
     );
     const deliveries = deliveriesResponse.data;
-    console.log(`Entregas obtenidas: ${deliveries.length}`);
+    console.log(`Deliveries obtained: ${deliveries.length}`);
 
-    // 2. Obtener todos los usuarios
+    // 2. Get all users
     const usersResponse = await axios.get(
       `${process.env.AUTH_URL}/users/users/`,
       {
@@ -342,22 +356,22 @@ async function getDeliveriesCoords(req, res) {
     );
     const users = usersResponse.data;
 
-    // 3. Filtrar usuarios activos y obtener sus IDs
+    // 3. Filter active users and get their IDs
     const activeUserIds = new Set(
       users.filter((u) => u.isActive).map((u) => u.id)
     );
 
-    // 4. Filtrar deliveries que estén asociados a usuarios activos
+    // 4. Filter deliveries that are associated with active users
     const activeDeliveries = deliveries.filter(
-      (d) => activeUserIds.has(d.idUser) // o d.user_id, según cómo se llame en tu modelo
+      (d) => activeUserIds.has(d.idUser) 
     );
 
     const deliveryIds = activeDeliveries.map((d) => d.id);
 
-    // 5. Obtener últimas ubicaciones en batch
+    // 5. Get latest locations in batch
     const latestLocationsMap = await getLatestLocationsBatch(deliveryIds);
 
-    // 6. Construir array con datos y coords
+    // 6. Build array with data and coords
     const deliveriesWithCoords = activeDeliveries
       .map((delivery) => {
         const latest = latestLocationsMap[delivery.id];
@@ -375,24 +389,24 @@ async function getDeliveriesCoords(req, res) {
       .filter((d) => d !== null);
 
     console.log(
-      `Entregas con coords válidas (usuarios activos): ${deliveriesWithCoords.length}`
+      `Deliveries with valid coords (active users): ${deliveriesWithCoords.length}`
     );
     return res.json(deliveriesWithCoords);
   } catch (error) {
-    console.error("Error obteniendo entregas con coords:", error.message);
+    console.error("Error querying deliveries with coords:", error.message);
     return res.status(500).json({ error: error.message });
   }
 }
 
 
-// Recibe un arreglo de deliveryPersonId y devuelve la última ubicación de cada uno
+// Receives an array of deliveryPersonId and returns the latest location of each
 async function getLatestLocationsBatch(deliveryPersonIds) {
-  // Query para obtener la última ubicación de cada deliveryPersonId
-  // Usamos agregación MongoDB para agrupar y sacar la última por timestamp
+  // Query to get the latest location of each deliveryPersonId
+  // We use MongoDB aggregation to group and get the latest by timestamp
   const pipeline = [
     { $match: { deliveryPersonId: { $in: deliveryPersonIds } } },
     {
-      $sort: { deliveryPersonId: 1, timestamp: -1 } // ordenar para sacar primero la más reciente
+      $sort: { deliveryPersonId: 1, timestamp: -1 } // sort to get the most recent first
     },
     {
       $group: {
@@ -403,10 +417,8 @@ async function getLatestLocationsBatch(deliveryPersonIds) {
     }
   ];
 
-  const results = await Location.aggregate(pipeline);
-  // results será un array con objetos {_id: deliveryPersonId, location, timestamp}
+  const results = await Location.aggregate(pipeline); // results will be an array with objects {_id: deliveryPersonId, location, timestamp}
 
-  // Mapear para acceso rápido si quieres
   const locationsMap = {};
   results.forEach(({ _id, location, timestamp }) => {
     locationsMap[_id] = { location, timestamp };

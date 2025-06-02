@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 
+// Define the schema for storing delivery person locations
 const locationSchema = new mongoose.Schema({
   deliveryPersonId: { type: String, required: true },
   orderId: { type: String, required: false },
@@ -18,7 +19,7 @@ const locationSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-// Índice 2dsphere para consultas geoespaciales
+// 2dsphere index for geospatial queries
 locationSchema.index({ location: "2dsphere" });
 
 module.exports = mongoose.model("Location", locationSchema);

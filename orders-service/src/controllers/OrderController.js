@@ -89,6 +89,31 @@ async function getUserWithLocation(userId, token) {
   return { user, city };
 }
 
+// Busca un delivery con menos de 8 pedidos para hoy (excluyendo uno si se indica)
+async function findAvailableDelivery(token, excludeDeliveryId = null) {
+  const deliveryPersons = await prisma.deliveryPerson.findMany();
+  for (const dp of deliveryPersons) {
+    if (excludeDeliveryId && dp.id === excludeDeliveryId) continue;
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+    const ordersToday = await prisma.order.count({
+      where: {
+        deliveryId: dp.id,
+        estimatedDeliveryTime: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    });
+    if (ordersToday < 8) {
+      return dp;
+    }
+  }
+  return null;
+}
+
 async function assignDelivery(customerId, token) {
   try {
     const customerData = await getUserWithLocation(customerId, token);
@@ -176,7 +201,34 @@ const createOrder = async (req, res) => {
 
     const token = req.headers.authorization;
 
-    const delivery = await assignDelivery(customerId, token);
+    let delivery = await assignDelivery(customerId, token);
+
+    // Limitar a máximo 8 pedidos por día para el delivery asignado
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const ordersToday = await prisma.order.count({
+      where: {
+        deliveryId: delivery.id,
+        estimatedDeliveryTime: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    });
+
+    // Si ya tiene 8, buscar otro delivery disponible
+    if (ordersToday >= 8) {
+      const otherDelivery = await findAvailableDelivery(token, delivery.id);
+      if (!otherDelivery) {
+        return res.status(400).json({
+          error: "No delivery person available with capacity for today.",
+        });
+      }
+      delivery = otherDelivery;
+    }
 
     if (!delivery) {
       return res.status(404).json({ error: "No delivery person available." });
@@ -208,7 +260,7 @@ const createOrder = async (req, res) => {
     let allProducts = [];
     try {
       const response = await axios.get(
-        `${process.env.INVENTORY_URL}/product`, 
+        `${process.env.INVENTORY_URL}/product`,
         {
           headers: {
             Authorization: token,
@@ -276,6 +328,26 @@ const createOrder = async (req, res) => {
       await prisma.orderProduct.createMany({
         data: orderProductsData,
       });
+
+      // Descontar stock en inventory-service
+  for (const p of products) {
+    try {
+      await axios.patch(
+        `${process.env.INVENTORY_URL}/product-warehouse/decrement-stock`,
+        {
+          productId: p.productId,
+          quantity: p.quantity
+        },
+        { headers: { Authorization: token } }
+      );
+    } catch (err) {
+      console.error(`Error descontando stock para ${p.productId}:`, err?.response?.data || err.message);
+      return res.status(400).json({
+        error: `No se pudo descontar el stock para el producto ${p.productId}`,
+        details: err?.response?.data || err.message
+      });
+    }
+  }
     }
 
     // Geocodificación

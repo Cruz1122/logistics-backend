@@ -3,8 +3,8 @@ const router = express.Router();
 const { authenticateJWT, authorize } = require("../middlewares/Auth");
 const ProductWarehouseController = require("../controllers/ProductWarehouseController");
 
-/**
- * @swagger
+/** 
+* @swagger
  * tags:
  *   name: Product-Warehouse
  *   description: Manage products stored in warehouses
@@ -126,6 +126,44 @@ const ProductWarehouseController = require("../controllers/ProductWarehouseContr
  *       200:
  *         description: Record deleted
  */
+
+/**
+ * @swagger
+ * /product-warehouse/decrement-stock:
+ *   patch:
+ *     summary: Decrement stock for a product in a warehouse
+ *     tags: [Product-Warehouse]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - productId
+ *               - quantity
+ *             properties:
+ *               productId:
+ *                 type: string
+ *                 description: Product ID to decrement stock for
+ *               quantity:
+ *                 type: integer
+ *                 description: Quantity to decrement
+ *     responses:
+ *       200:
+ *         description: Stock decremented successfully
+ *       404:
+ *         description: No warehouse found with enough stock for this productId
+ */
+
+router.patch(
+  "/decrement-stock",
+  authenticateJWT,
+  authorize("Product-Warehouse Management", "editar"),
+  ProductWarehouseController.decrementStock
+);
 
 
 router.get(

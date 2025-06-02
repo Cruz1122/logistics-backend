@@ -231,8 +231,8 @@ async function getWarehousesCoords(req, res) {
       .filter((w) => w.latitude != null && w.longitude != null)
       .map((w) => ({
       warehouseId: w.id,
-      lat: w.latitude,
-      lng: w.longitude,
+      lat: Number(w.latitude),
+      lng: Number(w.longitude),
       }));
 
     console.log(`Almacenes con coords válidas: ${warehousesWithCoords.length}`);
@@ -246,6 +246,8 @@ async function getWarehousesCoords(req, res) {
 async function getDeliveriesCoords(req, res) {
   try {
     console.log("Iniciando petición a deliveries...");
+
+    // 1. Obtener todos los delivery persons
     const deliveriesResponse = await axios.get(
       `${process.env.ORDERS_URL}/delivery-persons/`,
       {
@@ -255,13 +257,32 @@ async function getDeliveriesCoords(req, res) {
     const deliveries = deliveriesResponse.data;
     console.log(`Entregas obtenidas: ${deliveries.length}`);
 
-    const deliveryIds = deliveries.map((d) => d.id);
+    // 2. Obtener todos los usuarios
+    const usersResponse = await axios.get(
+      `${process.env.AUTH_URL}/users/users/`,
+      {
+        headers: { Authorization: req.headers.authorization || "" },
+      }
+    );
+    const users = usersResponse.data;
 
-    // Obtener últimas ubicaciones de todos con una sola consulta
+    // 3. Filtrar usuarios activos y obtener sus IDs
+    const activeUserIds = new Set(
+      users.filter((u) => u.isActive).map((u) => u.id)
+    );
+
+    // 4. Filtrar deliveries que estén asociados a usuarios activos
+    const activeDeliveries = deliveries.filter(
+      (d) => activeUserIds.has(d.idUser) // o d.user_id, según cómo se llame en tu modelo
+    );
+
+    const deliveryIds = activeDeliveries.map((d) => d.id);
+
+    // 5. Obtener últimas ubicaciones en batch
     const latestLocationsMap = await getLatestLocationsBatch(deliveryIds);
 
-    // Construir array con datos y coords
-    const deliveriesWithCoords = deliveries
+    // 6. Construir array con datos y coords
+    const deliveriesWithCoords = activeDeliveries
       .map((delivery) => {
         const latest = latestLocationsMap[delivery.id];
         if (latest?.location?.coordinates) {
@@ -277,13 +298,16 @@ async function getDeliveriesCoords(req, res) {
       })
       .filter((d) => d !== null);
 
-    console.log(`Entregas con coords válidas: ${deliveriesWithCoords.length}`);
+    console.log(
+      `Entregas con coords válidas (usuarios activos): ${deliveriesWithCoords.length}`
+    );
     return res.json(deliveriesWithCoords);
   } catch (error) {
     console.error("Error obteniendo entregas con coords:", error.message);
     return res.status(500).json({ error: error.message });
   }
 }
+
 
 // Recibe un arreglo de deliveryPersonId y devuelve la última ubicación de cada uno
 async function getLatestLocationsBatch(deliveryPersonIds) {

@@ -20,7 +20,7 @@ const generate2FACode = () => {
   // Generate a 6-digit code, but reverse the digits for extra difference
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   return code.split("").reverse().join("");
-}
+};
 
 const signUp = async (req, res) => {
   const { email, password, name, lastName, phone, roleId, cityId } = req.body;
@@ -39,9 +39,10 @@ const signUp = async (req, res) => {
       return res.status(409).json({ error: "Email already in use" });
     }
 
-
     if (roleId) {
-      const roleExists = await prisma.role.findUnique({ where: { id: roleId } });
+      const roleExists = await prisma.role.findUnique({
+        where: { id: roleId },
+      });
       if (!roleExists) {
         return res.status(422).json({ error: `Invalid roleId: ${roleId}` });
       }
@@ -142,7 +143,7 @@ const verifyEmail = async (req, res) => {
     });
 
     res.status(200).json({
-      message: "Account verified successfully."
+      message: "Account verified successfully.",
     });
   } catch (error) {
     console.error("Error verifying email:", error);
@@ -190,11 +191,14 @@ const resendVerificationCode = async (req, res) => {
     );
 
     if (!emailSent) {
-      return res.status(500).json({ error: "Failed to send verification email." });
+      return res
+        .status(500)
+        .json({ error: "Failed to send verification email." });
     }
 
     res.status(200).json({
-      message: "Verification code resent successfully. Please check your email.",
+      message:
+        "Verification code resent successfully. Please check your email.",
     });
   } catch (error) {
     console.error("Error resending verification code:", error);
@@ -206,11 +210,15 @@ const signIn = async (req, res) => {
   const { email, password, method } = req.body;
 
   if (!email || !password || !method) {
-    return res.status(400).json({ error: "Email, password and method are required." });
+    return res
+      .status(400)
+      .json({ error: "Email, password and method are required." });
   }
 
   if (!["sms", "email"].includes(method)) {
-    return res.status(400).json({ error: "Invalid method. Must be 'sms' or 'email'." });
+    return res
+      .status(400)
+      .json({ error: "Invalid method. Must be 'sms' or 'email'." });
   }
 
   try {
@@ -243,16 +251,16 @@ const signIn = async (req, res) => {
 
     if (method === "sms") {
       if (!user.phone) {
-        return res.status(400).json({ error: "Phone number is required for SMS login." });
+        return res
+          .status(400)
+          .json({ error: "Phone number is required for SMS login." });
       }
 
       // Verificar que tenga '+57' al inicio
       if (!user.phone.startsWith("+57")) {
-        return res
-          .status(400)
-          .json({
-            error: "Invalid phone number format. Must include country code.",
-          });
+        return res.status(400).json({
+          error: "Invalid phone number format. Must include country code.",
+        });
       }
 
       const smsSent = await client.messages.create({
@@ -333,6 +341,91 @@ const verifyTwoFactor = async (req, res) => {
   }
 };
 
+const resend2FACode = async (req, res) => {
+  const { email, method } = req.body;
+  if (!email || !method) {
+    return res.status(400).json({ error: "Email and method are required." });
+  }
+
+  if (!["sms", "email"].includes(method)) {
+    return res
+      .status(400)
+      .json({ error: "Invalid method. Must be 'sms' or 'email'." });
+  }
+
+  let user; 
+  try {
+    user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    if (!user.twoFactorCode || !user.twoFactorCodeExpiresAt) {
+      return res
+        .status(400)
+        .json({ error: "No 2FA code found for this user." });
+    }
+  } catch (error) {
+    console.error("Error fetching user for 2FA resend:", error);
+    return res
+      .status(500)
+      .json({ error: "Failed to fetch user for 2FA resend." });
+  }
+
+  try {
+    const code = generate2FACode();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
+    await prisma.user.update({
+      where: { email },
+      data: {
+        twoFactorCode: code,
+        twoFactorCodeExpiresAt: expiresAt,
+        updatedAt: new Date(),
+      },
+    });
+
+    if (method === "sms") {
+      if (!user.phone) {
+        return res
+          .status(400)
+          .json({ error: "Phone number is required for SMS login." });
+      }
+      if (!user.phone.startsWith("+57")) {
+        return res.status(400).json({
+          error: "Invalid phone number format. Must include country code.",
+        });
+      }
+      const smsSent = await client.messages.create({
+        body: `Your new 2FA code is: ${code}`,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: user.phone,
+      });
+      if (!smsSent) {
+        return res.status(500).json({ error: "Failed to send SMS code." });
+      }
+    } else if (method === "email") {
+      const emailSent = await sendVerificationEmail(
+        email,
+        code,
+        `${user.name} ${user.lastName}`,
+        "2FA"
+      );
+      if (!emailSent) {
+        return res.status(500).json({ error: "Failed to send email code." });
+      }
+    }
+
+    res.status(200).json({
+      message: `2FA code resent via ${method.toUpperCase()}. Please verify to complete login.`,
+      email: user.email,
+      method,
+    });
+  } catch (error) {
+    console.error("Error resending 2FA code:", error);
+    res.status(500).json({ error: "Failed to resend 2FA code." });
+  }
+};
+
+
 // ---------------------------------------|| -------------------------------------------||
 
 const requestPasswordReset = async (req, res) => {
@@ -386,7 +479,9 @@ const resetPassword = async (req, res) => {
   const { email, code, newPassword } = req.body;
 
   if (!email || !code || !newPassword) {
-    return res.status(400).json({ error: "Email, code and new password are required." });
+    return res
+      .status(400)
+      .json({ error: "Email, code and new password are required." });
   }
 
   try {
@@ -435,12 +530,15 @@ const resetPassword = async (req, res) => {
 
 // ---------------------------------------|| -------------------------------------------||
 
-
 const changePassword = async (req, res) => {
   const { email, password, newPassword } = req.body;
 
   if (!email || !password || !newPassword) {
-    return res.status(400).json({ error: "Email, current password, and new password are required." });
+    return res
+      .status(400)
+      .json({
+        error: "Email, current password, and new password are required.",
+      });
   }
 
   try {
@@ -456,7 +554,11 @@ const changePassword = async (req, res) => {
     }
 
     if (password === newPassword) {
-      return res.status(400).json({ error: "New password must be different from current password." });
+      return res
+        .status(400)
+        .json({
+          error: "New password must be different from current password.",
+        });
     }
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
@@ -506,10 +608,7 @@ const getUserPermissions = async (req, res) => {
 
     // Solo incluye los permisos donde al menos uno de los flags es true
     const permissions = rolePermissions
-      .filter(
-        (rp) =>
-          rp.listar
-      )
+      .filter((rp) => rp.listar)
       .map((rp) => ({
         permissionId: rp.permissionId,
         name: rp.permission.name,
@@ -543,6 +642,7 @@ module.exports = {
   signUp,
   verifyEmail,
   resendVerificationCode,
+  resend2FACode,
   signIn,
   verifyTwoFactor,
   requestPasswordReset,

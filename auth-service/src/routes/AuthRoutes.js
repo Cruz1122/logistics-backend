@@ -12,6 +12,7 @@ const {
   changePassword,
   health,
   getUserPermissions,
+  resend2FACode,
 } = require("../controllers/AuthController");
 
 //Registro de usuario:
@@ -311,6 +312,8 @@ router.get(
   authorize("Account Management", "listar"),
   getUserPermissions
 );
+
+router.post("/resend-two-factor", resend2FACode);
 
 router.get("/health", health);
 

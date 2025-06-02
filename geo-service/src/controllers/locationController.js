@@ -1,5 +1,10 @@
 const Location = require("../models/Location");
 const axios = require("axios");
+const GOOGLE_GEOCODE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+let pLimit;
+(async () => {
+  pLimit = (await import("p-limit")).default;
+})();
 
 // POST /locations – guarda nueva posición
 async function createLocation(req, res) {
@@ -136,6 +141,179 @@ async function trackCode(req, res) {
   }
 };
 
+// Función que obtiene los pedidos y geocodifica sus direcciones
+async function getOrdersWithCoords(req, res) {
+  try {
+    console.log("Iniciando petición a orders...");
+    const ordersResponse = await axios.get(
+      `${process.env.ORDERS_URL}/orders/`,
+      {
+        headers: { Authorization: req.headers.authorization || "" },
+      }
+    );
+    const orders = ordersResponse.data;
+    console.log(`Pedidos obtenidos: ${orders.length}`);
+
+    const ordersWithAddress = orders.filter((o) => o.deliveryAddress?.trim());
+
+    console.log("Iniciando geocodificación...");
+    const limit = pLimit(5);
+    const geocodedOrders = await Promise.all(
+      ordersWithAddress.map((order) =>
+        limit(async () => {
+          const geo = await geocodeAddress(order.deliveryAddress);
+          if (geo) {
+            return {
+              orderId: order.id,
+              lat: geo.lat,
+              lng: geo.lng,
+              formattedAddress: geo.formattedAddress,
+            };
+          }
+          return null;
+        })
+      )
+    );
+    console.log("Geocodificación finalizada.");
+
+    const filtered = geocodedOrders.filter((o) => o !== null);
+    console.log(`Pedidos geocodificados: ${filtered.length}`);
+    return res.json(filtered);
+  } catch (error) {
+    console.error("Error obteniendo pedidos con coords:", error.message);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+async function geocodeAddress(address) {
+  const url = "https://maps.googleapis.com/maps/api/geocode/json";
+  const params = {
+    address,
+    key: GOOGLE_GEOCODE_API_KEY,
+  };
+  try {
+    const response = await axios.get(url, { params });
+    if (
+      response.data.status === "OK" &&
+      response.data.results &&
+      response.data.results.length > 0
+    ) {
+      const location = response.data.results[0].geometry.location;
+      return {
+        lat: location.lat,
+        lng: location.lng,
+        formattedAddress: response.data.results[0].formatted_address,
+      };
+    } else {
+      console.warn(`No se pudo geocodificar: ${address}`);
+      return null;
+    }
+  } catch (error) {
+    console.error(`Error geocodificando dirección: ${address}`, error.message);
+    return null;
+  }
+}
+
+async function getWarehousesCoords(req, res) {
+  try {
+    console.log("Iniciando petición a almacenes...");
+    const warehousesResponse = await axios.get(
+      `${process.env.INVENTORY_URL}/warehouse`,
+      {
+        headers: { Authorization: req.headers.authorization || "" },
+      }
+    );
+    const warehouses = warehousesResponse.data;
+    console.log(`Almacenes obtenidos: ${warehouses.length}`);
+
+    // Cada almacén tiene 'latitude' y 'longitude' como atributos separados
+    const warehousesWithCoords = warehouses
+      .filter((w) => w.latitude != null && w.longitude != null)
+      .map((w) => ({
+      warehouseId: w.id,
+      lat: w.latitude,
+      lng: w.longitude,
+      }));
+
+    console.log(`Almacenes con coords válidas: ${warehousesWithCoords.length}`);
+    return res.json(warehousesWithCoords);
+  } catch (error) {
+    console.error("Error obteniendo almacenes con coords:", error.message);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+async function getDeliveriesCoords(req, res) {
+  try {
+    console.log("Iniciando petición a deliveries...");
+    const deliveriesResponse = await axios.get(
+      `${process.env.ORDERS_URL}/delivery-persons/`,
+      {
+        headers: { Authorization: req.headers.authorization || "" },
+      }
+    );
+    const deliveries = deliveriesResponse.data;
+    console.log(`Entregas obtenidas: ${deliveries.length}`);
+
+    const deliveryIds = deliveries.map((d) => d.id);
+
+    // Obtener últimas ubicaciones de todos con una sola consulta
+    const latestLocationsMap = await getLatestLocationsBatch(deliveryIds);
+
+    // Construir array con datos y coords
+    const deliveriesWithCoords = deliveries
+      .map((delivery) => {
+        const latest = latestLocationsMap[delivery.id];
+        if (latest?.location?.coordinates) {
+          return {
+            deliveryPersonId: delivery.id,
+            lat: latest.location.coordinates[1],
+            lng: latest.location.coordinates[0],
+            name: delivery.name,
+            timestamp: latest.timestamp,
+          };
+        }
+        return null;
+      })
+      .filter((d) => d !== null);
+
+    console.log(`Entregas con coords válidas: ${deliveriesWithCoords.length}`);
+    return res.json(deliveriesWithCoords);
+  } catch (error) {
+    console.error("Error obteniendo entregas con coords:", error.message);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+// Recibe un arreglo de deliveryPersonId y devuelve la última ubicación de cada uno
+async function getLatestLocationsBatch(deliveryPersonIds) {
+  // Query para obtener la última ubicación de cada deliveryPersonId
+  // Usamos agregación MongoDB para agrupar y sacar la última por timestamp
+  const pipeline = [
+    { $match: { deliveryPersonId: { $in: deliveryPersonIds } } },
+    {
+      $sort: { deliveryPersonId: 1, timestamp: -1 } // ordenar para sacar primero la más reciente
+    },
+    {
+      $group: {
+        _id: "$deliveryPersonId",
+        location: { $first: "$location" },
+        timestamp: { $first: "$timestamp" },
+      }
+    }
+  ];
+
+  const results = await Location.aggregate(pipeline);
+  // results será un array con objetos {_id: deliveryPersonId, location, timestamp}
+
+  // Mapear para acceso rápido si quieres
+  const locationsMap = {};
+  results.forEach(({ _id, location, timestamp }) => {
+    locationsMap[_id] = { location, timestamp };
+  });
+  return locationsMap; // { deliveryPersonId: {location, timestamp}, ... }
+}
+
 module.exports = {
   createLocation,
   getLocations,
@@ -143,4 +321,7 @@ module.exports = {
   updateLocation,
   getLatestLocation,
   trackCode,
+  getOrdersWithCoords,
+  getDeliveriesCoords,
+  getWarehousesCoords
 };

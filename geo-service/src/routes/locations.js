@@ -9,6 +9,7 @@ const {
   getOrdersWithCoords,
   getWarehousesCoords,
   getDeliveriesCoords,
+  getGeocodedLocationHistory,
 } = require("../controllers/locationController");
 
 // POST /locations – guarda nueva posición
@@ -28,6 +29,8 @@ router.get("/near", getLocationsNear);
 
 // GET /locations/latest – obtiene la última ubicación de un repartidor
 router.get("/latest", getLatestLocation);
+
+router.get("/routes", getGeocodedLocationHistory);
 
 // GET /orders, /warehouses, /deliveries – obtiene coordenadas de pedidos, almacenes y entregas
 router.get("/orders", getOrdersWithCoords);

@@ -34,6 +34,82 @@ async function getLocations(req, res) {
   res.json(list);
 }
 
+// Helper to check if should geocode based on distance and previous address
+function shouldGeocodeLocation(loc, uniqueAddresses, locations) {
+  if (uniqueAddresses.length === 0) return true;
+  const prevLoc = locations.find(
+    l => l.timestamp.getTime() === uniqueAddresses[uniqueAddresses.length - 1].timestamp.getTime()
+  );
+  if (!prevLoc) return true;
+  const [lng, lat] = loc.location.coordinates;
+  const [prevLng, prevLat] = prevLoc.location.coordinates;
+  const distance = Math.sqrt(
+    Math.pow(lat - prevLat, 2) + Math.pow(lng - prevLng, 2)
+  );
+  // Aproximadamente 0.0003 grados ~ 30 metros
+  return distance >= 0.0003;
+}
+
+// Helper to geocode lat/lng
+async function reverseGeocode(lat, lng) {
+  const { data } = await axios.get(
+    `https://maps.googleapis.com/maps/api/geocode/json`,
+    {
+      params: {
+        latlng: `${lat},${lng}`,
+        key: GOOGLE_GEOCODE_API_KEY,
+      },
+    }
+  );
+  return data?.results?.[0]?.formatted_address || "Desconocido";
+}
+
+// GET /locations/geohistory?deliveryPersonId=UUID
+async function getGeocodedLocationHistory(req, res) {
+  const { deliveryPersonId } = req.query;
+
+  if (!deliveryPersonId) {
+    return res.status(400).json({ error: "deliveryPersonId es requerido" });
+  }
+
+  try {
+    // 1. Obtener ubicaciones ordenadas por fecha ascendente
+    const locations = await Location.find({ deliveryPersonId })
+      .sort({ timestamp: 1 }) // más antiguas primero
+      .limit(100);
+
+    if (!locations || locations.length === 0) {
+      return res.status(404).json({ error: "No se encontraron ubicaciones." });
+    }
+
+    // 2. Inversa geocodificación
+    const uniqueAddresses = [];
+    let lastAddress = null;
+
+    for (const loc of locations) {
+      const [lng, lat] = loc.location.coordinates;
+
+      if (shouldGeocodeLocation(loc, uniqueAddresses, locations)) {
+        const address = await reverseGeocode(lat, lng);
+        if (address !== lastAddress) {
+          uniqueAddresses.push({
+            address,
+            timestamp: loc.timestamp,
+          });
+          lastAddress = address;
+        }
+      }
+    }
+
+    res.json(uniqueAddresses);
+  } catch (err) {
+    console.error("Error en geohistory:", err.message);
+    res
+      .status(500)
+      .json({ error: "Error procesando el historial de ubicaciones." });
+  }
+}
+
 // GET /locations/near – ubicaciones cercanas a un punto
 async function getLocationsNear(req, res) {
   const { lng, lat, maxDistance = 500 } = req.query;
@@ -347,5 +423,6 @@ module.exports = {
   trackCode,
   getOrdersWithCoords,
   getDeliveriesCoords,
-  getWarehousesCoords
+  getWarehousesCoords,
+  getGeocodedLocationHistory,
 };

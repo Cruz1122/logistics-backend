@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { generateDeliveryReport } = require("../controllers/reportController");
+const { generateDeliveryReport, generateDeliveryReportXlsx } = require("../controllers/reportController");
 const { authenticateJWT } = require("../middlewares/Auth"); // si lo estás usando
 
 
@@ -33,4 +33,5 @@ const { authenticateJWT } = require("../middlewares/Auth"); // si lo estás usan
  *         description: Internal server error
  */
 router.get("/delivery-report/:deliveryId", authenticateJWT, generateDeliveryReport);
+router.get("/delivery-report-excel/:deliveryId", authenticateJWT, generateDeliveryReportXlsx);
 module.exports = router;

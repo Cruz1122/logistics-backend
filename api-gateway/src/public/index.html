@@ -8,59 +8,91 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Rubik:wght@400;500;700&display=swap"
+        rel="stylesheet" />
     <link rel="stylesheet" href="/css/style.css" />
 </head>
 
 <body>
-    <header class="navbar">
-        <div class="wrapper">
-            <div class="logo"> LogicSmart360</div>
-        </div>
-    </header>
+        <header class="navbar">
+            <div class="wrapper">
+                <div class="logo"> LogicSmart360</div>
+            </div>
+            </header>
 
     <main class="status-page">
-        <div class="card">
-            <div class="card-accent"></div>
-    
-            <div class="card-header">
-                <div class="icon-wrapper">
-                    <img src="/img/icon.webp" alt="Gateway Alive" class="icon" />
+        <div class="wrapper">
+            <div class="card status-card">
+                <div class="card-accent"></div>
+
+                <div class="card-header">
+                    <div class="icon-wrapper">
+                        <img src="/img/icon.webp" alt="Gateway Alive" class="icon" loading="lazy" />
+                    </div>
+                </div>
+
+                <h1 class="card-title">API Gateway is Alive</h1>
+                <p class="card-subtitle">
+                    Welcome to the API Gateway of LogicSmart360. Here you can find the status of our services and access their documentation.
+                </p>
+
+                <div class="services-grid">
+                    <div class="service-card">
+                        <div class="service-info">
+                            <span class="service-path">/auth</span>
+                            <span class="badge online">ONLINE</span>
+                        </div>
+                        <button class="btn-outline swagger-button"
+                            onclick="window.open('auth/api-docs/auth', '_blank')">
+                            Ver Swagger
+                        </button>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-info">
+                            <span class="service-path">/inventory</span>
+                            <span class="badge online">ONLINE</span>
+                        </div>
+                        <button class="btn-outline swagger-button"
+                            onclick="window.open('/inventory/api-docs/', '_blank')">
+                            Check Swagger
+                        </button>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-info">
+                            <span class="service-path">/orders</span>
+                            <span class="badge online">ONLINE</span>
+                        </div>
+                        <button class="btn-outline swagger-button" onclick="window.open('/orders/api-docs/', '_blank')">
+                            Check Swagger
+                        </button>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-info">
+                            <span class="service-path">/geo</span>
+                            <span class="badge online">ONLINE</span>
+                        </div>
+                        <button class="btn-outline swagger-button" onclick="window.open('/geo/docs/', '_blank')">
+                            Check Swagger
+                        </button>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-info">
+                            <span class="service-path">/reports</span>
+                            <span class="badge online">ONLINE</span>
+                        </div>
+                        <button class="btn-outline swagger-button" onclick="window.open('/reports/docs/', '_blank')">
+                            Check Swagger
+                        </button>
+                    </div>
                 </div>
             </div>
-    
-            <h1>API Gateway is alive</h1>
-            <p>Welcome to the logistics platform gateway.</p>
-    
-            <ul class="status-list">
-                <li>
-                    <span class="path">/auth</span>
-                    <span class="badge online">ONLINE</span>
-                </li>
-                <li>
-                    <span class="path">/geo</span>
-                    <span class="badge online">ONLINE</span>
-                </li>
-                <li>
-                    <span class="path">/inventory</span>
-                    <span class="badge online">ONLINE</span>
-                </li>
-                <li>
-                    <span class="path">/orders</span>
-                    <span class="badge online">ONLINE</span>
-                </li>
-                <li>
-                    <span class="path">/reports</span>
-                    <span class="badge offline">OFFLINE</span>
-                </li>
-            </ul>
         </div>
     </main>
-      
 
     <footer class="footer">
-        <div class="wrapper">
-            © 2025 LogicSmart360 – All rights reserved
+        <div class="wrapper footer-content">
+            © 2025 LogicSmart360 – All rights reserved.
         </div>
     </footer>
 </body>

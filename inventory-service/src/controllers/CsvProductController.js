@@ -6,14 +6,18 @@ const axios = require("axios");
 const prisma = require("../config/prisma");
 const { sendStockEmail } = require("../utils/mailer");
 
+// Import p-limit dynamically to avoid circular dependency issues
+// This allows us to use p-limit for concurrency control in batch processing
 let pLimit;
 (async () => {
   pLimit = (await import("p-limit")).default;
 })();
 
+// Create logs directory if it doesn't exist
 const logDir = path.join(__dirname, "../../logs");
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
 
+// Create a log stream with a timestamped filename
 const createLogStream = () => {
   const now = new Date();
   const date = now.toISOString().split("T")[0];
@@ -22,6 +26,7 @@ const createLogStream = () => {
   return fs.createWriteStream(path.join(logDir, logFileName), { flags: "a" });
 };
 
+// Functions to normalize decimal values and parse dates
 const normalizeDecimal = (val) => parseFloat(String(val).replace(",", "."));
 const parseCsvDate = (rawDate) => {
   if (!rawDate) return null;
@@ -35,6 +40,7 @@ const parseCsvDate = (rawDate) => {
   return isNaN(parsedDate.getTime()) ? null : parsedDate;
 };
 
+// Batch size for processing records
 const BATCH_SIZE = 500;
 
 // --- Helpers ---
@@ -49,12 +55,12 @@ async function readFile(filePath, log) {
         .on("data", (row) => results.push(row))
         .on("end", () => {
           log(
-            `→ Archivo CSV leído completamente. Filas leídas: ${results.length}`
+            `→ CSV file read completely. Rows read: ${results.length}`
           );
           resolve();
         })
         .on("error", (err) => {
-          log(`Error leyendo CSV: ${err.message}`);
+          log(`Error reading CSV: ${err.message}`);
           reject(err);
         });
     });
@@ -64,26 +70,28 @@ async function readFile(filePath, log) {
     const sheet = workbook.Sheets[sheetName];
     const data = xlsx.utils.sheet_to_json(sheet, { defval: "" });
     data.forEach((row) => results.push(row));
-    log(`→ Archivo Excel leído completamente. Filas leídas: ${results.length}`);
+    log(`→ Excel file read completely. Rows read: ${results.length}`);
   } else {
     throw new Error(
-      "Formato de archivo no soportado. Solo CSV y Excel (.xls, .xlsx)"
+      "Unsupported file format. Only CSV and Excel (.xls, .xlsx) are allowed"
     );
   }
 
   return results;
 }
 
+// Load existing warehouses into a map for quick access
 async function loadWarehouses(log) {
-  log("Cargando almacenes...");
+  log("Loading warehouses...");
   const allWarehouses = await prisma.warehouse.findMany();
   const warehouseMap = new Map(allWarehouses.map((w) => [w.id, w]));
-  log(`→ ${allWarehouses.length} almacenes cargados`);
+  log(`→ ${allWarehouses.length} warehouses loaded`);
   return warehouseMap;
 }
 
+// Load existing suppliers and categories, creating new ones if needed
 async function loadSuppliers(results, log) {
-  log("Cargando proveedores existentes...");
+  log("Loading existing suppliers...");
   const supplierIds = [
     ...new Set(
       results.map((r) => String(r.id_proveedor ?? "").trim()).filter(Boolean)
@@ -93,12 +101,12 @@ async function loadSuppliers(results, log) {
     where: { id: { in: supplierIds } },
   });
   const supplierMap = new Map(existingSuppliers.map((s) => [s.id, s]));
-  log(`→ ${existingSuppliers.length} proveedores encontrados`);
+  log(`→ ${existingSuppliers.length} suppliers found`);
 
   // Crear proveedores nuevos
   const newSupplierIds = supplierIds.filter((id) => !supplierMap.has(id));
   if (newSupplierIds.length) {
-    log(`→ ${newSupplierIds.length} proveedores nuevos a crear`);
+    log(`→ ${newSupplierIds.length} new suppliers to create`);
     await prisma.supplier.createMany({
       data: newSupplierIds.map((id) => ({
         id,
@@ -112,14 +120,15 @@ async function loadSuppliers(results, log) {
       where: { id: { in: newSupplierIds } },
     });
     refreshedSuppliers.forEach((s) => supplierMap.set(s.id, s));
-    log(`→ ${refreshedSuppliers.length} proveedores nuevos creados`);
+    log(`→ ${refreshedSuppliers.length} new suppliers created`);
   }
 
   return { supplierMap, totalSuppliersCreated: newSupplierIds.length };
 }
 
+// Load existing categories and create new ones if needed
 async function loadCategories(results, log) {
-  log("Cargando categorías existentes...");
+  log("Loading existing categories...");
   const categoryNames = [
     ...new Set(
       results
@@ -131,20 +140,22 @@ async function loadCategories(results, log) {
         .filter(Boolean)
     ),
   ];
+
+  // Filter out empty category names
   const existingCategories = await prisma.category.findMany({
     where: { name: { in: categoryNames } },
   });
   const categoryMap = new Map(
     existingCategories.map((c) => [c.name.toLowerCase(), c])
   );
-  log(`→ ${existingCategories.length} categorías encontradas`);
+  log(`→ ${existingCategories.length} categories found`);
 
-  // Crear categorías nuevas
+  // Create new categories if they don't exist
   const newCategoryNames = categoryNames.filter(
     (name) => !categoryMap.has(name)
   );
   if (newCategoryNames.length) {
-    log(`→ ${newCategoryNames.length} categorías nuevas a crear`);
+    log(`→ ${newCategoryNames.length} new categories to create`);
     await prisma.category.createMany({
       data: newCategoryNames.map((name) => ({ name })),
       skipDuplicates: true,
@@ -155,14 +166,15 @@ async function loadCategories(results, log) {
     refreshedCategories.forEach((c) =>
       categoryMap.set(c.name.toLowerCase(), c)
     );
-    log(`→ ${refreshedCategories.length} categorías nuevas creadas`);
+    log(`→ ${refreshedCategories.length} new categories created`);
   }
 
   return { categoryMap, totalCategoriesCreated: newCategoryNames.length };
 }
 
+// Load existing products into a map for quick access
 async function loadProducts(results, log) {
-  log("Cargando productos existentes...");
+  log("Loading existing products...");
   const productIds = [
     ...new Set(
       results.map((r) => String(r.id_producto ?? "").trim()).filter(Boolean)
@@ -172,12 +184,13 @@ async function loadProducts(results, log) {
     where: { id: { in: productIds } },
   });
   const productMap = new Map(existingProducts.map((p) => [p.id, p]));
-  log(`→ ${existingProducts.length} productos encontrados`);
+  log(`→ ${existingProducts.length} products found`);
   return productMap;
 }
 
+// Load existing product warehouses into a map for quick access
 async function loadProductWarehouses(results, log) {
-  log("Cargando relaciones productWarehouse existentes...");
+  log("Loading existing productWarehouse relationships...");
   const productWarehouseKeys = results
     .map((r) => ({
       productId: String(r.id_producto ?? "").trim(),
@@ -196,12 +209,13 @@ async function loadProductWarehouses(results, log) {
   const pwMap = new Map(
     existingPWs.map((pw) => [`${pw.productId}||${pw.warehouseId}`, pw])
   );
-  log(`→ ${existingPWs.length} productWarehouses encontrados`);
+  log(`→ ${existingPWs.length} productWarehouses found`);
   return pwMap;
 }
 
+// Load existing product-supplier relationships into a set for quick access
 async function loadProductSuppliers(results, log) {
-  log("Cargando relaciones productSupplier existentes (solo las del CSV)...");
+  log("Loading existing productSupplier relationships (CSV only)...");
   const productSupplierPairs = Array.from(
     new Set(
       results
@@ -216,20 +230,22 @@ async function loadProductSuppliers(results, log) {
     const [productId, supplierId] = str.split("||");
     return { productId, supplierId };
   });
-  log(`→ ${productSupplierPairs.length} parejas product-supplier a verificar`);
+  log(`→ ${productSupplierPairs.length} product-supplier pairs to verify`);
   const existingPS = await prisma.productSupplier.findMany({
     where: { OR: productSupplierPairs },
   });
   const psSet = new Set(
     existingPS.map((ps) => `${ps.productId}||${ps.supplierId}`)
   );
-  log(`→ ${existingPS.length} relaciones productSupplier existentes`);
+  log(`→ ${existingPS.length} existing productSupplier relationships`);
   return psSet;
 }
 
+// --- Validations ---
+// Validate warehouse, supplier, and category existence
 function isValidWarehouse(productId, warehouseId, warehouseMap, log) {
   if (!productId || !warehouseId || !warehouseMap.has(warehouseId)) {
-    log(`  ► Almacén inválido para producto "${productId}"`);
+    log(`  ► Invalid warehouse for product "${productId}"`);
     return false;
   }
   return true;
@@ -237,7 +253,7 @@ function isValidWarehouse(productId, warehouseId, warehouseMap, log) {
 
 function isValidSupplier(supplierId, supplier, productId, log) {
   if (supplierId && !supplier) {
-    log(`  ► Proveedor inválido para producto "${productId}"`);
+    log(`  ► Invalid supplier for product "${productId}"`);
     return false;
   }
   return true;
@@ -245,26 +261,27 @@ function isValidSupplier(supplierId, supplier, productId, log) {
 
 function isValidCategory(catName, category, productId, log) {
   if (catName && !category) {
-    log(`  ► Categoría inválida para producto "${productId}"`);
+    log(`  ► Invalid category for product "${productId}"`);
     return false;
   }
   return true;
 }
 
+// Build new product object from CSV row
 function buildNewProduct(row, productId, category) {
   const name = String(row.nombre_producto ?? "").trim();
   const priceRaw = row.precio_unitario;
   const weightRaw = row.peso_kg;
   if (!name || priceRaw == null || weightRaw == null) {
     throw new Error(
-      `Faltan campos requeridos para producto "${productId}": nombre, precio_unitario o peso_kg`
+      `Missing required fields for product "${productId}": name, price_unit or weight_kg`
     );
   }
   const unitPrice = normalizeDecimal(priceRaw);
   const weightKg = normalizeDecimal(weightRaw);
   if (isNaN(unitPrice) || isNaN(weightKg)) {
     throw new Error(
-      `Campos inválidos para producto "${productId}": precio_unitario o peso_kg no son numéricos`
+      `Invalid fields for product "${productId}": price_unit or weight_kg are not numeric`
     );
   }
 
@@ -283,6 +300,7 @@ function buildNewProduct(row, productId, category) {
   };
 }
 
+// Build product warehouse update and create objects
 function buildPWUpdate(existPW, row, lastRestock, expDate, status) {
   const stockQty = parseInt(row.cantidad_stock) || 0;
   const reorderLvl = parseInt(row.nivel_reorden) || 0;
@@ -299,6 +317,7 @@ function buildPWUpdate(existPW, row, lastRestock, expDate, status) {
   };
 }
 
+// Build product warehouse create object
 function buildPWCreate(
   productId,
   warehouseId,
@@ -320,6 +339,7 @@ function buildPWCreate(
   };
 }
 
+// Process a batch of records
 async function processBatch({
   batch,
   warehouseMap,
@@ -389,11 +409,11 @@ async function processBatch({
   };
 }
 
-// --- Función principal de procesamiento por batches ---
+// --- Main processing functions ---
 // Helper for updating existing product warehouses
 async function updateProductWarehouses(pwsToUpdate, prisma, log, movementsToCreate, lowStockAlerts, totalPWUpdated) {
   for (const pw of pwsToUpdate) {
-    log(`  ► Actualizando PW id=${pw.id}`);
+    log(`  ► Updating PW id=${pw.id}`);
     await prisma.productWarehouse.update({
       where: { id: pw.id },
       data: {
@@ -411,7 +431,7 @@ async function updateProductWarehouses(pwsToUpdate, prisma, log, movementsToCrea
         movementType: "UPDATE",
         quantityMoved: pw.stockQuantity - pw.prevStock,
         stockAfter: pw.stockQuantity,
-        notes: "Actualización por carga masiva",
+        notes: "Update by bulk load",
       });
     }
     // Alerta stock bajo si aplica
@@ -429,7 +449,7 @@ async function updateProductWarehouses(pwsToUpdate, prisma, log, movementsToCrea
 // Helper for creating new product warehouses
 async function createProductWarehouses(pwsToCreate, prisma, log, pwMap, movementsToCreate, lowStockAlerts, totalPWCreated) {
   if (pwsToCreate.length) {
-    log(`  ► Creando ${pwsToCreate.length} PWs nuevas`);
+    log(`  ► Creating ${pwsToCreate.length} new PWs`);
     await prisma.productWarehouse.createMany({
       data: pwsToCreate,
       skipDuplicates: true,
@@ -450,7 +470,7 @@ async function createProductWarehouses(pwsToCreate, prisma, log, pwMap, movement
         movementType: "CREATION",
         quantityMoved: pw.stockQuantity,
         stockAfter: pw.stockQuantity,
-        notes: "Creación por carga masiva",
+        notes: "Creation by bulk load",
       });
       pwMap.set(`${pw.productId}||${pw.warehouseId}`, pw);
       // Alerta stock bajo si aplica
@@ -466,6 +486,7 @@ async function createProductWarehouses(pwsToCreate, prisma, log, pwMap, movement
   }
 }
 
+// Process batches of records, creating or updating products and their warehouses
 async function processBatches({
   results,
   warehouseMap,
@@ -487,7 +508,7 @@ async function processBatches({
 
   for (let i = 0; i < results.length; i += BATCH_SIZE) {
     const batch = results.slice(i, i + BATCH_SIZE);
-    log(`  Batch ${i + 1} a ${i + batch.length}`);
+    log(`  Batch ${i + 1} to ${i + batch.length}`);
 
     const {
       newProductsData,
@@ -505,9 +526,9 @@ async function processBatches({
       log,
     });
 
-    // Crear productos nuevos
+    // Create new products
     if (newProductsData.length) {
-      log(`  ► Creando ${newProductsData.length} productos`);
+      log(`  ► Creating ${newProductsData.length} products`);
       await prisma.product.createMany({
         data: newProductsData,
         skipDuplicates: true,
@@ -516,7 +537,7 @@ async function processBatches({
       newProductsData.forEach((p) => productMap.set(p.id, p));
     }
 
-    // Actualizar PWs existentes
+    // Update existing product warehouses
     await updateProductWarehouses(
       pwsToUpdate,
       prisma,
@@ -526,7 +547,7 @@ async function processBatches({
       totalPWUpdated
     );
 
-    // Crear PWs nuevas
+    // Create new product warehouses
     await createProductWarehouses(
       pwsToCreate,
       prisma,
@@ -537,10 +558,10 @@ async function processBatches({
       totalPWCreated
     );
 
-    // Crear relaciones productSupplier nuevas
+    // Create new product-supplier relationships
     if (productSupplierToCreate.length) {
       log(
-        `  ► Creando ${productSupplierToCreate.length} relaciones productSupplier`
+        `  ► Creating ${productSupplierToCreate.length} productSupplier relationships`
       );
       await prisma.productSupplier.createMany({
         data: productSupplierToCreate,
@@ -560,7 +581,7 @@ async function processBatches({
   };
 }
 
-// --- Endpoint de subida e importación ---
+// --- Upload handler ---
 const uploadProductCSV = async (req, res) => {
   const filePath = req.file.path;
   const lowStockAlerts = [];
@@ -572,7 +593,7 @@ const uploadProductCSV = async (req, res) => {
   };
 
   try {
-    log("Inicio de lectura del archivo.");
+    log("Start reading the file.");
 
     const results = await readFile(filePath, log);
 
@@ -589,7 +610,7 @@ const uploadProductCSV = async (req, res) => {
     const pwMap = await loadProductWarehouses(results, log);
     const psSet = await loadProductSuppliers(results, log);
 
-    log("Procesando registros por batches...");
+    log("Processing records in batches...");
     const {
       totalProductsCreated,
       totalPWCreated,
@@ -613,7 +634,7 @@ const uploadProductCSV = async (req, res) => {
     // Crear movimientos acumulados
     let totalMovementsCreated = 0;
     if (movementsToCreate.length) {
-      log(`Creando ${movementsToCreate.length} movimientos de inventario`);
+      log(`Creating ${movementsToCreate.length} inventory movements`);
       for (let i = 0; i < movementsToCreate.length; i += BATCH_SIZE) {
         const batchMovs = movementsToCreate.slice(i, i + BATCH_SIZE);
         await prisma.productWarehouseMovement.createMany({ data: batchMovs });
@@ -623,7 +644,7 @@ const uploadProductCSV = async (req, res) => {
 
     // Envío de alertas de stock bajo
     if (lowStockAlerts.length) {
-      log(`→ Detectados ${lowStockAlerts.length} productos con stock bajo`);
+      log(`→ Detected ${lowStockAlerts.length} products with low stock`);
 
       let dispatchers = [];
       try {
@@ -681,34 +702,34 @@ const uploadProductCSV = async (req, res) => {
           subject,
           message
         );
-        if (emailSent) log("→ Alerta de stock bajo enviada a los dispatchers.");
-        else log("→ No se pudo enviar la alerta de stock bajo.");
+        if (emailSent) log("→ Low stock alert sent to dispatchers.");
+        else log("→ Failed to send low stock alert.");
       }
     }
 
-    log("Importación completada exitosamente.");
+    log("Import completed successfully.");
     logStream.end();
 
     res.status(201).json({
-      message: "Importación completada",
-      resumen: {
-        productosCreados: totalProductsCreated,
-        proveedoresCreados: totalSuppliersCreated,
-        categoriasCreadas: totalCategoriesCreated,
-        productWarehousesCreados: totalPWCreated,
-        productWarehousesActualizados: totalPWUpdated,
-        relacionesProductSupplierCreadas: totalPSCreated,
-        movimientosRegistrados: totalMovementsCreated,
-        alertasStockBajo: lowStockAlerts.length,
+      message: "Import completed",
+      summary: {
+        productsCreated: totalProductsCreated,
+        suppliersCreated: totalSuppliersCreated,
+        categoriesCreated: totalCategoriesCreated,
+        productWarehousesCreated: totalPWCreated,
+        productWarehousesUpdated: totalPWUpdated,
+        productSupplierRelationsCreated: totalPSCreated,
+        movementsRegistered: totalMovementsCreated,
+        lowStockAlerts: lowStockAlerts.length,
       },
     });
   } catch (err) {
-    console.error("Error general en importación:", err.message);
+    console.error("General error during import:", err.message);
     logStream.write(`[${new Date().toISOString()}] ERROR: ${err.message}\n`);
     logStream.end();
     res.status(400).json({
-      error: "Faltan o son inválidos campos requeridos",
-      detalle: err.message,
+      error: "Missing or invalid required fields",
+      detail: err.message,
     });
   }
 };

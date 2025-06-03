@@ -6,12 +6,15 @@ const axios = require("axios");
 const prisma = require("../config/prisma");
 const { sendManagerEmail } = require("../utils/mailer");
 
+// Environment variables
 const ROL_GERENTE_ID = process.env.ROL_GERENTE_ID;
 const CONTRASENA_GENERICA = process.env.CONTRASENA_GENERICA;
 
+// Create logs directory if it doesn't exist
 const logDir = path.join(__dirname, "../../logs");
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
 
+// Helper for creating a log stream with timestamped filename
 const createLogStream = () => {
   const now = new Date();
   const date = now.toISOString().split("T")[0];
@@ -20,6 +23,7 @@ const createLogStream = () => {
   return fs.createWriteStream(path.join(logDir, logFileName), { flags: "a" });
 };
 
+// Helper for normalizing strings
 const normalizeString = (str) =>
   str
     ?.normalize("NFD")
@@ -30,14 +34,14 @@ const normalizeString = (str) =>
 
 const BATCH_SIZE = 500;
 
-// Helper para logging consistente
+// Helper for consistent logging
 const createLogger = (logStream) => (msg) => {
   const timestamp = `[${new Date().toISOString()}] `;
   console.log(timestamp + msg);
   logStream.write(timestamp + msg + "\n");
 };
 
-// Helper para leer archivo (CSV o Excel)
+// Helper for reading files (CSV or Excel)
 async function readFile(filePath, log) {
   const results = [];
   const ext = path.extname(filePath).toLowerCase();
@@ -49,12 +53,12 @@ async function readFile(filePath, log) {
         .on("data", (row) => results.push(row))
         .on("end", () => {
           log(
-            `→ Archivo CSV leído completamente. Filas leídas: ${results.length}`
+            `→ CSV file read completely. Rows read: ${results.length}`
           );
           resolve();
         })
         .on("error", (err) => {
-          log(`Error leyendo CSV: ${err.message}`);
+          log(`Error reading CSV: ${err.message}`);
           reject(err);
         });
     });
@@ -64,18 +68,18 @@ async function readFile(filePath, log) {
     const sheet = workbook.Sheets[sheetName];
     const data = xlsx.utils.sheet_to_json(sheet, { defval: "" });
     data.forEach((row) => results.push(row));
-    log(`→ Archivo Excel leído completamente. Filas leídas: ${results.length}`);
+    log(`→ Excel file read completely. Rows read: ${results.length}`);
   } else {
     throw new Error(
-      "Formato de archivo no soportado. Solo CSV y Excel (.xls, .xlsx)"
+      "Unsupported file format. Only CSV and Excel (.xls, .xlsx) are allowed"
     );
   }
   return results;
 }
 
-// Helper para cargar ciudades y crear mapa
+// Helper for loading cities and creating map
 async function loadCities(log) {
-  log("Cargando ciudades y estados...");
+  log("Loading cities and states...");
   const allCities = await prisma.city.findMany({ include: { state: true } });
   const cityMap = new Map(
     allCities.map((c) => [
@@ -83,11 +87,11 @@ async function loadCities(log) {
       c,
     ])
   );
-  log(`→ ${allCities.length} ciudades cargadas`);
+  log(`→ ${allCities.length} cities loaded`);
   return cityMap;
 }
 
-// Helper para procesar batch de registros
+// Helper for processing batch of records
 async function processBatch(batch, cityMap, log, token) {
   let totalWarehousesCreated = 0;
   let totalWarehousesUpdated = 0;
@@ -215,6 +219,7 @@ async function tryGetOrCreateUser({
   return { userId, userCreated, userError };
 }
 
+// Helper to get or create manager user
 async function GetOrCreateUser(payloadUser, log, token) {
   try {
     const existingUserResponse = await axios.get(
@@ -227,12 +232,12 @@ async function GetOrCreateUser(payloadUser, log, token) {
     );
     if (existingUserResponse.data.id) {
       log(
-        `Gerente encontrado: ${payloadUser.email}. Se asignará a su respectivo almacén.`
+        `Manager found: ${payloadUser.email}. It will be assigned to its respective warehouse.`
       );
       return existingUserResponse.data.id;
     }
   } catch {
-    log(`Gerente no encontrado, intentando crear: ${payloadUser.email}`);
+    log(`Manager not found, trying to create: ${payloadUser.email}`);
   }
 
   try {
@@ -248,18 +253,19 @@ async function GetOrCreateUser(payloadUser, log, token) {
         message,
         payloadUser.password
       );
-      log(`Email de bienvenida enviado a ${payloadUser.email}`);
+      log(`Welcome email sent to ${payloadUser.email}`);
       return userId;
     }
   } catch (err) {
-    log(`Error creando gerente: ${err.message}`);
+    log(`Error creating manager: ${err.message}`);
     throw err;
   }
 
-  log(`No se pudo crear gerente con email base: ${payloadUser.email}`);
+  log(`Could not create manager with base email: ${payloadUser.email}`);
   return null;
 }
 
+// Helper to create user in auth service
 async function tryCreateUser(payloadUser, log, token) {
   try {
     const response = await axios.post(
@@ -271,7 +277,7 @@ async function tryCreateUser(payloadUser, log, token) {
         },
       }
     );
-    log(`► Gerente creado: ${response.data.user?.id} - ${payloadUser.email}`);
+    log(`► Manager created: ${response.data.user?.id} - ${payloadUser.email}`);
     return response.data.user?.id;
   } catch (err) {
     if (
@@ -280,7 +286,7 @@ async function tryCreateUser(payloadUser, log, token) {
     ) {
       return null;
     }
-    log(`Error creando usuario: ${err.message}`);
+    log(`Error creating user: ${err.message}`);
     throw err;
   }
 }
@@ -353,14 +359,14 @@ function extractManagerNames(gerenteRaw) {
 
 // Helper to handle invalid city/department
 function handleInvalidCityDept(errors, log, idAlmacen, nombreAlmacen, ciudadRaw) {
-  const msg = `Error almacén "${idAlmacen}" - "${nombreAlmacen}": Ciudad o departamento inválidos`;
+  const msg = `Error warehouse "${idAlmacen}" - "${nombreAlmacen}": Invalid city or department`;
   log(msg);
   errors.push({ ciudad: ciudadRaw, mensaje: msg });
 }
 
 // Helper to handle city not found
 function handleCityNotFound(errors, log, idAlmacen, nombreAlmacen, ciudadRaw, departamentoRaw) {
-  const msg = `Error almacén "${idAlmacen}" - "${nombreAlmacen}": Ciudad "${ciudadRaw}" con departamento "${departamentoRaw}" no existe en la base de datos`;
+  const msg = `Error warehouse "${idAlmacen}" - "${nombreAlmacen}": City "${ciudadRaw}" with department "${departamentoRaw}" does not exist in the database`;
   log(msg);
   errors.push({
     ciudad: ciudadRaw,
@@ -371,14 +377,14 @@ function handleCityNotFound(errors, log, idAlmacen, nombreAlmacen, ciudadRaw, de
 
 // Helper to handle user creation error
 function handleUserError(errors, log, idAlmacen, nombreAlmacen, email) {
-  const msg = `No se pudo crear o asignar usuario gerente para almacén "${idAlmacen}" - "${nombreAlmacen}" con base en email: ${email}`;
+  const msg = `Could not create or assign manager user for warehouse "${idAlmacen}" - "${nombreAlmacen}" based on email: ${email}`;
   log(msg);
   errors.push({ email, mensaje: msg });
 }
 
 // Helper to handle unexpected user error
 function handleUnexpectedUserError(errors, log, idAlmacen, nombreAlmacen, email, err) {
-  const msg = `Error inesperado creando usuario gerente para almacén "${idAlmacen}" - "${nombreAlmacen}": ${err.message}`;
+  const msg = `Unexpected error creating manager user for warehouse "${idAlmacen}" - "${nombreAlmacen}": ${err.message}`;
   log(msg);
   errors.push({ email, mensaje: msg });
 }
@@ -418,25 +424,25 @@ async function createOrUpdateWarehouse({
       where: { id: idAlmacen },
       data: dataToSave,
     });
-    log(`→ Almacén actualizado: "${idAlmacen}" - "${nombreAlmacen}"`);
+    log(`→ Warehouse updated: "${idAlmacen}" - "${nombreAlmacen}"`);
     return "updated";
   } else {
     await prisma.warehouse.create({
       data: { id: idAlmacen, ...dataToSave },
     });
-    log(`→ Almacén creado: "${idAlmacen}" - "${nombreAlmacen}"`);
+    log(`→ Warehouse created: "${idAlmacen}" - "${nombreAlmacen}"`);
     return "created";
   }
 }
 
 // Helper to handle warehouse error
 function handleWarehouseError(errors, log, idAlmacen, nombreAlmacen, err) {
-  const msg = `Error creando o actualizando almacén "${idAlmacen}" - "${nombreAlmacen}": ${err.message}`;
+  const msg = `Error creating or updating warehouse "${idAlmacen}" - "${nombreAlmacen}": ${err.message}`;
   log(msg);
   errors.push({ id_almacen: idAlmacen, mensaje: msg });
 }
 
-// Función principal
+// Main function to upload warehouses with managers
 const uploadWarehousesWithManagers = async (req, res) => {
   const filePath = req.file.path;
   const logStream = createLogStream();
@@ -456,7 +462,7 @@ const uploadWarehousesWithManagers = async (req, res) => {
 
     for (let i = 0; i < results.length; i += BATCH_SIZE) {
       const batch = results.slice(i, i + BATCH_SIZE);
-      log(`Procesando batch de registros ${i + 1} a ${i + batch.length}`);
+      log(`Processing batch of records ${i + 1} to ${i + batch.length}`);
 
       // Aquí debes pasar el token a processBatch y a funciones internas que usan axios
       const batchResult = await processBatch(batch, cityMap, log, token);
@@ -467,27 +473,26 @@ const uploadWarehousesWithManagers = async (req, res) => {
       errors = errors.concat(batchResult.errors);
     }
 
-    log("Importación completada exitosamente.");
+    log("Import completed successfully.");
     logStream.end();
 
     res.status(201).json({
-      message: "Importación completada",
-      resumen: {
-        almacenesCreados: totalWarehousesCreated,
-        almacenesActualizados: totalWarehousesUpdated,
-        usuariosGerentesCreados: totalUsersCreated,
-        errores: errors.length,
-        detallesErrores: errors,
+      message: "Import completed",
+      summary: {
+        warehousesCreated: totalWarehousesCreated,
+        warehousesUpdated: totalWarehousesUpdated,
+        managerUsersCreated: totalUsersCreated,
+        errors: errors.length,
+        errorDetails: errors,
       },
     });
   } catch (error) {
-    const msg = `Error general importando almacenes: ${error.message}`;
+    const msg = `General error importing warehouses: ${error.message}`;
     fs.appendFileSync(path.join(logDir, "error.log"), msg + "\n", "utf8");
     res
       .status(500)
-      .json({ error: "Fallo importación almacenes", detalles: msg });
+      .json({ error: "Warehouse import failed", details: msg });
   }
 };
-
 
 module.exports = { uploadWarehousesWithManagers };

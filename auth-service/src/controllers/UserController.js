@@ -192,7 +192,6 @@ const createUser = async (req, res) => {
         phone,
         roleId,
         emailVerified: true,
-        isActive, 
         createdAt: new Date(),
         updatedAt: new Date(),
         cityId: cityId || null, // Assign cityId if provided

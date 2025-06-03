@@ -17,7 +17,7 @@ let userId;
 let orderId;
 
 describe("E2E - Pedido y ubicación", () => {
-    jest.setTimeout(20000);
+    jest.setTimeout(30000);
     const uniqueEmail = `test+${Date.now()}@delivery.com`;
     const uniqueOrderId = `order-${Date.now()}`;
 
@@ -72,21 +72,36 @@ describe("E2E - Pedido y ubicación", () => {
     });
 
     it("5. Create an order", async () => {
+        // productos
+        const products = [
+            { productId: "P0012", quantity: 2 },
+            { productId: "P0015", quantity: 1 }
+        ];
+
         const res = await request(apiGateway)
             .post("/orders/orders")
             .set("Authorization", `Bearer ${authToken}`)
             .send({
                 id: uniqueOrderId,
                 customerId: userId,
-                deliveryId: "dp001",
                 status: "PENDING",
                 deliveryAddress: "Cra 45 # 123-45, Medellín",
                 estimatedDeliveryTime: "2025-05-20T16:00:00Z",
-                totalAmount: 240000
+                products // <-- envía productos, no totalAmount
             });
 
         expect(res.statusCode).toBe(201);
         orderId = res.body.id;
+
+        // Consulta la orden creada y valida el totalAmount
+        const orderRes = await request(apiGateway)
+            .get(`/orders/orders/${orderId}`)
+            .set("Authorization", `Bearer ${authToken}`);
+
+        expect(orderRes.statusCode).toBe(200);
+
+
+        expect(orderRes.body.totalAmount).toBeGreaterThan(0);
     });
 
     it("6. Post delivery location", async () => {

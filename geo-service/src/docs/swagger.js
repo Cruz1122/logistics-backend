@@ -6,7 +6,7 @@ const swaggerDefinition = {
   info: {
     title: "Geo Service API",
     version: "1.0.0",
-    description: "Documentación de la API de Geo Service",
+    description: "Geo Service API documentation",
   },
   servers: [
     {

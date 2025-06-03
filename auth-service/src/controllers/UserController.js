@@ -3,21 +3,25 @@ const bcrypt = require("bcrypt");
 const axios = require("axios");
 const { get } = require("../routes/AuthRoutes");
 
+// Capitalizes the first letter of each word in a string
 const capitalize = (str) => {
   if (!str) return "";
   return str
-    .split(" ") // Divide la cadena en palabras
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitaliza cada palabra
-    .join(" "); // Une las palabras nuevamente
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 };
 
-// Valida y prepara los datos de usuario para la creación masiva
+// Validates and prepares user data for bulk creation
 function validateUserData(user) {
   if (!user.email || !user.password || !user.name || !user.roleId) {
-    throw new Error("Campos obligatorios faltantes: email, password, name, roleId");
+    throw new Error("Missing required fields: email, password, name, roleId");
   }
 }
 
+/**
+ * Retrieves all users from the database, including their roles.
+ */
 const getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -32,6 +36,9 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+/**
+ * Retrieves a user by their ID, including their role.
+ */
 const getUserById = async (req, res) => {
   const userId = req.params.id;
   try {
@@ -51,6 +58,9 @@ const getUserById = async (req, res) => {
   }
 };
 
+/**
+ * Retrieves a user by their email, including their role.
+ */
 const getUserByEmail = async (req, res) => {
   const email = req.params.email;
   try {
@@ -68,6 +78,9 @@ const getUserByEmail = async (req, res) => {
   }
 };
 
+/**
+ * Retrieves the active status of a user by their ID.
+ */
 const getUserStatusById = async (req, res) => {
   const { id } = req.params;
 
@@ -91,7 +104,9 @@ const getUserStatusById = async (req, res) => {
   }
 };
 
-
+/**
+ * Updates a user's information by their ID.
+ */
 const updateUser = async (req, res) => {
   const userId = req.params.id;
   const { name, lastName, phone, roleId, cityId, isActive } = req.body;
@@ -109,7 +124,7 @@ const updateUser = async (req, res) => {
         roleId,
         isActive,
         updatedAt: new Date(),
-        cityId, // Asegura que cityId se actualice correctamente
+        cityId, // Ensures cityId is updated correctly
       },
     });
 
@@ -120,6 +135,9 @@ const updateUser = async (req, res) => {
   }
 };
 
+/**
+ * Deletes a user by their ID.
+ */
 const deleteUser = async (req, res) => {
   const userId = req.params.id;
   try {
@@ -131,6 +149,10 @@ const deleteUser = async (req, res) => {
   }
 };
 
+/**
+ * Creates a new user, hashes the password, and assigns a role.
+ * If the role is "delivery", also creates a DeliveryPerson in the orders microservice.
+ */
 const createUser = async (req, res) => {
   const { email, password, name, lastName, phone, roleId, cityId } = req.body;
 
@@ -155,12 +177,12 @@ const createUser = async (req, res) => {
       return res.status(400).json({ error: "Invalid roleId." });
     }
 
-    // Hashear la contraseña
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
     const capitalizedName = capitalize(name);
     const capitalizedLastName = capitalize(lastName);
 
-    // Crear el usuario
+    // Create the user
     const newUser = await prisma.user.create({
       data: {
         email,
@@ -173,11 +195,11 @@ const createUser = async (req, res) => {
         isActive, 
         createdAt: new Date(),
         updatedAt: new Date(),
-        cityId: cityId || null, // Asignar cityId si se proporciona
+        cityId: cityId || null, // Assign cityId if provided
       },
     });
 
-    // Si el rol es "delivery", crear DeliveryPerson en microservicio orders
+    // If the role is "delivery", create DeliveryPerson in orders microservice
     if (role.name.toLowerCase() === "delivery") {
       if (!cityId) {        
         return res.status(400).json({
@@ -231,20 +253,23 @@ const createUser = async (req, res) => {
   }
 };
 
+/**
+ * Creates multiple users in bulk, hashing passwords and validating data.
+ */
 const bulkUsers = async (req, res) => {
   const users = req.body;
 
   if (!Array.isArray(users) || users.length === 0) {
-    return res.status(400).json({ error: "Debe enviar un arreglo no vacío de usuarios." });
+    return res.status(400).json({ error: "You must send a non-empty array of users." });
   }
 
   try {
-    // Validar datos de todos los usuarios antes de procesar
+    // Validate all user data before processing
     for (const user of users) {
       validateUserData(user);
     }
 
-    // Preparar usuarios para crear: hashear passwords y limpiar datos
+    // Prepare users for creation: hash passwords and clean data
     const usersData = await Promise.all(
       users.map(async (user) => ({
         email: user.email.toLowerCase(),
@@ -256,17 +281,17 @@ const bulkUsers = async (req, res) => {
       }))
     );
 
-    // Insertar masivamente con createMany
-    // Nota: createMany no dispara hooks ni valida unicidad, usar skipDuplicates:true para ignorar emails repetidos
+    // Bulk insert with createMany
+    // Note: createMany does not trigger hooks or validate uniqueness, use skipDuplicates:true to ignore repeated emails
     await prisma.user.createMany({
       data: usersData,
       skipDuplicates: true,
     });
 
-    res.status(201).json({ message: "Usuarios creados masivamente" });
+    res.status(201).json({ message: "Users created in bulk" });
   } catch (error) {
-    console.error("Error en creación masiva de usuarios:", error);
-    res.status(500).json({ error: "Error creando usuarios masivamente" });
+    console.error("Error in bulk user creation:", error);
+    res.status(500).json({ error: "Error creating users in bulk" });
   }
 };
 

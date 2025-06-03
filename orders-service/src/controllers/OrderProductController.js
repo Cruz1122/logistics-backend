@@ -1,5 +1,9 @@
 const prisma = require("../config/prisma");
 
+/**
+ * Retrieves all order-product relations from the database.
+ * Responds with a JSON array of order products.
+ */
 const getAllOrderProducts = async (req, res) => {
   try {
     const orderProducts = await prisma.orderProduct.findMany();
@@ -10,6 +14,11 @@ const getAllOrderProducts = async (req, res) => {
   }
 };
 
+/**
+ * Retrieves a specific order-product relation by its ID.
+ * Responds with the order product object if found, or 404 if not found.
+ * @param {string} req.params.id - The ID of the order product to retrieve.
+ */
 const getOrderProductById = async (req, res) => {
   try {
     const orderProduct = await prisma.orderProduct.findUnique({
@@ -23,6 +32,14 @@ const getOrderProductById = async (req, res) => {
   }
 };
 
+/**
+ * Creates a new order-product relation with the provided data.
+ * Responds with the created order product object.
+ * @param {string} req.body.orderId - The order ID.
+ * @param {string} req.body.productId - The product ID.
+ * @param {number} req.body.quantity - The quantity of the product.
+ * @param {number} req.body.unitPrice - The unit price of the product.
+ */
 const createOrderProduct = async (req, res) => {
   const { orderId, productId, quantity, unitPrice } = req.body;
   try {
@@ -36,6 +53,13 @@ const createOrderProduct = async (req, res) => {
   }
 };
 
+/**
+ * Updates an order-product relation by its ID.
+ * Responds with the updated order product object.
+ * @param {string} req.params.id - The ID of the order product to update.
+ * @param {number} req.body.quantity - The new quantity.
+ * @param {number} req.body.unitPrice - The new unit price.
+ */
 const updateOrderProduct = async (req, res) => {
   const { quantity, unitPrice } = req.body;
   try {
@@ -50,6 +74,11 @@ const updateOrderProduct = async (req, res) => {
   }
 };
 
+/**
+ * Deletes an order-product relation by its ID.
+ * Responds with a success message if deleted.
+ * @param {string} req.params.id - The ID of the order product to delete.
+ */
 const deleteOrderProduct = async (req, res) => {
   try {
     await prisma.orderProduct.delete({ where: { id: parseInt(req.params.id) } });

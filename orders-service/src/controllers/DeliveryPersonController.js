@@ -1,5 +1,10 @@
 const prisma = require("../config/prisma");
 
+
+/**
+ * Retrieves all delivery persons from the database, including their orders.
+ * Responds with a JSON array of delivery persons.
+ */
 const getAllDeliveryPersons = async (req, res) => {
   try {
     const deliveryPersons = await prisma.deliveryPerson.findMany({
@@ -12,6 +17,12 @@ const getAllDeliveryPersons = async (req, res) => {
   }
 };
 
+
+/**
+ * Retrieves a delivery person by their ID, including their orders.
+ * Responds with the delivery person object if found, or 404 if not found.
+ * @param {string} req.params.id - The ID of the delivery person to retrieve.
+ */
 const getDeliveryPersonById = async (req, res) => {
   try {
     const person = await prisma.deliveryPerson.findUnique({
@@ -26,6 +37,12 @@ const getDeliveryPersonById = async (req, res) => {
   }
 };
 
+
+/**
+ * Retrieves a delivery person by their associated user ID.
+ * Responds with the delivery person ID if found, or 404 if not found.
+ * @param {string} req.params.idUser - The user ID associated with the delivery person.
+ */
 const getDeliveryPersonByUserId = async (req, res) => {
   const { idUser } = req.params;
   try {
@@ -42,6 +59,16 @@ const getDeliveryPersonByUserId = async (req, res) => {
   }
 };
 
+
+/**
+ * Creates a new delivery person with the provided data.
+ * Responds with the created delivery person object.
+ * @param {string} req.body.id - The ID for the new delivery person.
+ * @param {string} req.body.idUser - The associated user ID.
+ * @param {string} req.body.name - The name of the delivery person.
+ * @param {number} req.body.latitude - The latitude coordinate.
+ * @param {number} req.body.longitude - The longitude coordinate.
+ */
 const createDeliveryPerson = async (req, res) => {
   const { id, idUser, name, latitude, longitude } = req.body;
   try {
@@ -55,6 +82,12 @@ const createDeliveryPerson = async (req, res) => {
   }
 };
 
+
+/**
+ * Updates a delivery person's information by their ID.
+ * Responds with the updated delivery person object.
+ * @param {string} req.params.id - The ID of the delivery person to update.
+ */
 const updateDeliveryPerson = async (req, res) => {
   const { idUser, name, latitude, longitude } = req.body;
   try {
@@ -69,6 +102,12 @@ const updateDeliveryPerson = async (req, res) => {
   }
 };
 
+
+/**
+ * Deletes a delivery person by their ID.
+ * Responds with a success message if deleted.
+ * @param {string} req.params.id - The ID of the delivery person to delete.
+ */
 const deleteDeliveryPerson = async (req, res) => {
   try {
     await prisma.deliveryPerson.delete({ where: { id: req.params.id } });

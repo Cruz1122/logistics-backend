@@ -1,6 +1,10 @@
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
+
+/**
+ * Configures the Nodemailer transporter for sending emails using Gmail SMTP.
+ */
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
@@ -14,6 +18,16 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+
+/**
+ * Sends an order tracking code email to the specified recipient.
+ * @param {Object} params - The email parameters.
+ * @param {string} params.fullName - The full name of the recipient.
+ * @param {string} params.subject - The subject of the email.
+ * @param {string} params.code - The tracking code to send.
+ * @param {string} params.email - The recipient's email address.
+ * @returns {Promise<boolean>} Returns true if the email was sent successfully, otherwise false.
+ */
 const sendTrackingCodeEmail = async ({ fullName, subject, code, email }) => {
     const mailOptions = {
         from: process.env.EMAIL_USER,

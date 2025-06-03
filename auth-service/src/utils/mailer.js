@@ -1,6 +1,9 @@
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
+/**
+ * Configures the Nodemailer transporter for sending emails using Gmail SMTP.
+ */
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
@@ -14,6 +17,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+
+/**
+ * Sends a verification email with a code to the specified user.
+ * @param {string} email - The recipient's email address.
+ * @param {string} code - The verification code to send.
+ * @param {string} fullName - The full name of the recipient.
+ * @param {string} subject - The subject of the email.
+ * @returns {Promise<boolean>} Returns true if the email was sent successfully, otherwise false.
+ */
 const sendVerificationEmail = async (email, code, fullName, subject) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,

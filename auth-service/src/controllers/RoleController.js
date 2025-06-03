@@ -1,6 +1,9 @@
 const prisma = require("../config/prisma");
 const axios = require("axios");
 
+/**
+ * Retrieves all roles from the database, including their permissions.
+ */
 const getRoles = async (req, res) => {
   try {
     const roles = await prisma.role.findMany({ include: { permissions: true } });
@@ -11,6 +14,9 @@ const getRoles = async (req, res) => {
   }
 };
 
+/**
+ * Retrieves a specific role by its ID, including its permissions.
+ */
 const getRoleById = async (req, res) => {
   try {
     const role = await prisma.role.findUnique({
@@ -25,6 +31,9 @@ const getRoleById = async (req, res) => {
   }
 };
 
+/**
+ * Retrieves a role by its name.
+ */
 const getRoleByName = async (req, res) => {
   const { name } = req.params;
   try {
@@ -39,6 +48,9 @@ const getRoleByName = async (req, res) => {
   }
 };
 
+/**
+ * Updates the name and description of a role by its ID.
+ */
 const updateRole = async (req, res) => {
   const { name, description } = req.body;
   try {
@@ -53,6 +65,9 @@ const updateRole = async (req, res) => {
   }
 };
 
+/**
+ * Deletes a role by its ID.
+ */
 const deleteRole = async (req, res) => {
   try {
     await prisma.role.delete({ where: { id: req.params.id } });
@@ -63,27 +78,23 @@ const deleteRole = async (req, res) => {
   }
 };
 
+/**
+ * Creates a new role and assigns all permissions to it with all actions set to false.
+ */
 const createRole = async (req, res) => {
   const { name, description } = req.body;
   try {
-    // 1. Crear el rol
+    // 1. Create the role
     const role = await prisma.role.create({ data: { name, description } });
 
-    // 2. Obtener todos los permisos
+    // 2. Get all permissions
     const permissions = await prisma.permission.findMany();
 
-    // 3. Crear las relaciones role-permission con todas las acciones en false
+    // 3. Create role-permission relations with all actions set to false
     const rolePermissionEndpoint = `${process.env.GATEWAY_INTERNAL_URL}/auth/role-permissions/`;
 
-    // Toma el header Authorization recibido
+    // Take the Authorization header from the request
     const authHeader = req.headers.authorization;
-
-    console.log("Authorization Header:", authHeader);
-    console.log("Role Permission Endpoint:", rolePermissionEndpoint);
-    console.log("Role ID:", role.id);
-    console.log("Permissions:", permissions);
-
-    
 
     await Promise.all(
       permissions.map((perm) =>

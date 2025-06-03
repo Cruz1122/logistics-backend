@@ -1,6 +1,10 @@
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
+
+/**
+ * Configures the Nodemailer transporter for sending emails using Gmail SMTP.
+ */
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
@@ -14,6 +18,13 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+/**
+ * Sends a stock notification email to the specified recipient.
+ * @param {string} email - The recipient's email address.
+ * @param {string} subject - The subject of the email.
+ * @param {string} message - The message body to include in the email.
+ * @returns {Promise<boolean>} Returns true if the email was sent successfully, otherwise false.
+ */
 const sendStockEmail = async (email, subject, message) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -67,6 +78,15 @@ const sendStockEmail = async (email, subject, message) => {
   }
 };
 
+
+/**
+ * Sends a manager notification email with a temporary password to the specified recipient.
+ * @param {string} email - The recipient's email address.
+ * @param {string} subject - The subject of the email.
+ * @param {string} message - The message body to include in the email.
+ * @param {string} password - The temporary password to include in the email.
+ * @returns {Promise<boolean>} Returns true if the email was sent successfully, otherwise false.
+ */
 const sendManagerEmail = async (email, subject, message, password) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,

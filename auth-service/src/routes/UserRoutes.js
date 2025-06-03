@@ -225,6 +225,58 @@ router.post(
   createUser
 );
 
+
+/**
+ * @swagger
+ * /users/bulk:
+ *   post:
+ *     summary: Create multiple users in bulk
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Role allowed is admin. Accepts an array of user objects.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: array
+ *             items:
+ *               type: object
+ *               required:
+ *                 - email
+ *                 - password
+ *                 - name
+ *                 - lastName
+ *                 - phone
+ *                 - roleId
+ *               properties:
+ *                 email:
+ *                   type: string
+ *                   example: "user@example.com"
+ *                 password:
+ *                   type: string
+ *                   example: "password123"
+ *                 name:
+ *                   type: string
+ *                   example: "John"
+ *                 lastName:
+ *                   type: string
+ *                   example: "Doe"
+ *                 phone:
+ *                   type: string
+ *                   example: "+123456789"
+ *                 roleId:
+ *                   type: string
+ *                   example: "role-uuid"
+ *     responses:
+ *       201:
+ *         description: Users created in bulk
+ *       400:
+ *         description: You must send a non-empty array of users or invalid input
+ *       500:
+ *         description: Error creating users in bulk
+ */
 router.post(
   "/bulk",
   authenticateJWT,

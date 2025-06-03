@@ -1,5 +1,9 @@
 const prisma = require("../config/prisma");
 
+/**
+ * Retrieves all role-permission relations from the database,
+ * including the associated role and permission details.
+ */
 const getAllRolePermissions = async (req, res) => {
   try {
     const rolePermissions = await prisma.rolePermission.findMany({
@@ -15,6 +19,10 @@ const getAllRolePermissions = async (req, res) => {
   }
 };
 
+/**
+ * Creates a new role-permission relation.
+ * Validates that both the role and permission exist before creating the relation.
+ */
 const createRolePermission = async (req, res) => {
   const { roleId, permissionId, listar, eliminar, crear, editar, descargar } =
     req.body;
@@ -26,7 +34,7 @@ const createRolePermission = async (req, res) => {
   }
 
   try {
-    // Verifica que el rol exista
+    // Check if the role exists
     const role = await prisma.role.findUnique({ where: { id: roleId } });
     if (!role) {
       return res
@@ -34,7 +42,7 @@ const createRolePermission = async (req, res) => {
         .json({ error: "Invalid roleId. Role does not exist." });
     }
 
-    // Verifica que el permiso exista
+    // Check if the permission exists
     const permission = await prisma.permission.findUnique({
       where: { id: permissionId },
     });
@@ -44,7 +52,7 @@ const createRolePermission = async (req, res) => {
         .json({ error: "Invalid permissionId. Permission does not exist." });
     }
 
-    // Crea la relación
+    // Create the relation
     const newRelation = await prisma.rolePermission.create({
       data: {
         roleId,
@@ -67,6 +75,10 @@ const createRolePermission = async (req, res) => {
   }
 };
 
+/**
+ * Retrieves a specific role-permission relation by its ID,
+ * including the associated role and permission details.
+ */
 const getRolePermissionById = async (req, res) => {
   const { id } = req.params; 
 
@@ -90,19 +102,23 @@ const getRolePermissionById = async (req, res) => {
   }
 };
 
+/**
+ * Updates an existing role-permission relation by its ID.
+ * Validates that the new role and permission exist before updating.
+ */
 const updateRolePermission = async (req, res) => {
   const id = req.params.id;
   const { roleId, permissionId, listar, eliminar, crear, editar, descargar } =
     req.body;
 
   try {
-    // Verifica que exista el RolePermission que se va a actualizar
+    // Check if the RolePermission exists
     const existing = await prisma.rolePermission.findUnique({ where: { id } });
     if (!existing) {
       return res.status(404).json({ error: "RolePermission not found." });
     }
 
-    // Validar que el nuevo roleId exista
+    // Validate that the new roleId exists
     const role = await prisma.role.findUnique({ where: { id: roleId } });
     if (!role) {
       return res
@@ -110,7 +126,7 @@ const updateRolePermission = async (req, res) => {
         .json({ error: "Invalid roleId. Role does not exist." });
     }
 
-    // Validar que el nuevo permissionId exista
+    // Validate that the new permissionId exists
     const permission = await prisma.permission.findUnique({
       where: { id: permissionId },
     });
@@ -120,7 +136,7 @@ const updateRolePermission = async (req, res) => {
         .json({ error: "Invalid permissionId. Permission does not exist." });
     }
 
-    // Actualizar el RolePermission
+    // Update the RolePermission
     const updated = await prisma.rolePermission.update({
       where: { id },
       data: {
@@ -144,6 +160,9 @@ const updateRolePermission = async (req, res) => {
   }
 };
 
+/**
+ * Deletes a role-permission relation by its ID.
+ */
 const deleteRolePermission = async (req, res) => {
   const { id } = req.params;
 

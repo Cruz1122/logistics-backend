@@ -3,6 +3,10 @@ const axios = require("axios");
 const { geocode } = require("../utils/geocode");
 const { sendTrackingCodeEmail } = require("../utils/mailer");
 
+/**
+ * Retrieves all orders from the database, including their delivery person and products.
+ * Responds with a JSON array of orders.
+ */
 const getAllOrders = async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
@@ -18,6 +22,11 @@ const getAllOrders = async (req, res) => {
   }
 };
 
+/**
+ * Retrieves a specific order by its ID, including its delivery person and products.
+ * Responds with the order object if found, or 404 if not found.
+ * @param {string} req.params.id - The ID of the order to retrieve.
+ */
 const getOrderById = async (req, res) => {
   try {
     const order = await prisma.order.findUnique({
@@ -32,6 +41,11 @@ const getOrderById = async (req, res) => {
   }
 };
 
+/**
+ * Retrieves an order by its tracking code, including its delivery person and products.
+ * Responds with the order object if found, or 404 if not found.
+ * @param {string} req.params.trackingCode - The tracking code of the order.
+ */
 const getOrderByTrackingCode = async (req, res) => {
   try {
     const { trackingCode } = req.params;
@@ -47,6 +61,11 @@ const getOrderByTrackingCode = async (req, res) => {
   }
 };
 
+/**
+ * Gets the geographic coordinates for a given address using the geocode utility.
+ * Responds with the coordinates if found, or 404 if not found.
+ * @param {string} req.params.address - The address to geocode.
+ */
 const getCoordsByAddress = async (req, res) => {
   const { address } = req.params;
   if (!address) {
@@ -64,6 +83,12 @@ const getCoordsByAddress = async (req, res) => {
   }
 };
 
+/**
+ * Helper function to get user data from the auth service.
+ * @param {string} userId - The user ID.
+ * @param {string} token - The authorization token.
+ * @returns {Promise<Object>} The user data.
+ */
 async function getUser(userId, token) {
   const response = await axios.get(`${process.env.AUTH_URL}/users/${userId}`, {
     headers: { Authorization: token },
@@ -71,6 +96,12 @@ async function getUser(userId, token) {
   return response.data;
 }
 
+/**
+ * Helper function to get city and state data from the inventory service.
+ * @param {string} cityId - The city ID.
+ * @param {string} token - The authorization token.
+ * @returns {Promise<Object>} The city and state data.
+ */
 async function getCityWithState(cityId, token) {
   const response = await axios.get(
     `${process.env.INVENTORY_URL}/city/${cityId}`,
@@ -81,6 +112,12 @@ async function getCityWithState(cityId, token) {
   return response.data;
 }
 
+/**
+ * Helper function to get user data and their city (with state) if available.
+ * @param {string} userId - The user ID.
+ * @param {string} token - The authorization token.
+ * @returns {Promise<Object>} The user and city data.
+ */
 async function getUserWithLocation(userId, token) {
   const user = await getUser(userId, token);
   if (!user?.cityId) return { user };
@@ -89,7 +126,13 @@ async function getUserWithLocation(userId, token) {
   return { user, city };
 }
 
-// Busca un delivery con menos de 8 pedidos para hoy (excluyendo uno si se indica)
+/**
+ * Finds an available delivery person with less than 8 orders for today.
+ * Optionally excludes a specific delivery person by ID.
+ * @param {string} token - The authorization token.
+ * @param {string|null} excludeDeliveryId - The delivery person ID to exclude.
+ * @returns {Promise<Object|null>} The available delivery person or null.
+ */
 async function findAvailableDelivery(token, excludeDeliveryId = null) {
   const deliveryPersons = await prisma.deliveryPerson.findMany();
   for (const dp of deliveryPersons) {
@@ -114,6 +157,13 @@ async function findAvailableDelivery(token, excludeDeliveryId = null) {
   return null;
 }
 
+/**
+ * Assigns a delivery person to an order based on the customer's city and state.
+ * If no match is found, assigns the first available delivery person.
+ * @param {string} customerId - The customer ID.
+ * @param {string} token - The authorization token.
+ * @returns {Promise<Object>} The assigned delivery person.
+ */
 async function assignDelivery(customerId, token) {
   try {
     const customerData = await getUserWithLocation(customerId, token);
@@ -123,7 +173,7 @@ async function assignDelivery(customerId, token) {
 
     const deliveryPersons = await prisma.deliveryPerson.findMany();
 
-    // Obtener info de cada delivery person con usuario + city + state
+    // Get info for each delivery person with user + city + state
     const deliveryUsers = await Promise.all(
       deliveryPersons.map(async (dp) => {
         const deliveryUserData = await getUserWithLocation(
@@ -140,25 +190,25 @@ async function assignDelivery(customerId, token) {
 
     let delivery = null;
 
-    // Buscar un delivery person que tenga el mismo cityId que el cliente
+    // Find a delivery person with the same cityId as the customer
     if (custCityId) {
       delivery = deliveryUsers.find((du) => du.city?.id === custCityId);
     }
 
-    // Si no se encuentra, buscar uno que tenga el mismo stateId
+    // If not found, find one with the same stateId
     if (!delivery && custStateId) {
       delivery = deliveryUsers.find((du) => du.city?.state?.id === custStateId);
     }
 
-    // Si aún no se encuentra, buscar uno que tenga un usuario asignado
+    // If still not found, find one with an assigned user
     if (!delivery) {
       delivery =
         deliveryUsers.find((du) => du.user != null) || deliveryUsers[0];
     }
 
-    // Si aún no se encuentra, asignar el primer delivery person disponible
+    // If still not found, assign the first available delivery person
     if (!delivery) {
-      throw new Error("No hay repartidores disponibles");
+      throw new Error("No delivery persons available");
     }
 
     return delivery.deliveryPerson;
@@ -168,26 +218,34 @@ async function assignDelivery(customerId, token) {
     if (anyDelivery) return anyDelivery;
 
     throw new Error(
-      "No hay repartidores disponibles y no se pudo asignar delivery automáticamente"
+      "No delivery persons available and could not assign delivery automatically"
     );
   }
 }
 
+/**
+ * Generates a unique tracking code for an order.
+ * @returns {Promise<string>} The unique tracking code.
+ */
 const generateTrackingCode = async () => {
-  const trackingCode = Math.random().toString(36).substring(2, 8).toUpperCase(); // Ej: '5G7X9A'
+  const trackingCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
   const existingOrder = await prisma.order.findFirst({
     where: { trackingCode },
   });
 
   if (existingOrder) {
-    return generateTrackingCode(); // Generar otro código si ya existe
+    return generateTrackingCode(); // Generate another code if already exists
   }
 
   return trackingCode;
 };
 
-// Controlador para crear orden con asignación automática de delivery
+/**
+ * Creates a new order with automatic delivery assignment, product validation,
+ * stock decrement, and sends a tracking code email to the customer.
+ * Responds with the created order object.
+ */
 const createOrder = async (req, res) => {
   try {
     const {
@@ -196,14 +254,14 @@ const createOrder = async (req, res) => {
       status,
       deliveryAddress,
       estimatedDeliveryTime,
-      products = [] // Solo { productId, quantity }
+      products = [] // Only { productId, quantity }
     } = req.body;
 
     const token = req.headers.authorization;
 
     let delivery = await assignDelivery(customerId, token);
 
-    // Limitar a máximo 8 pedidos por día para el delivery asignado
+    // Limit to a maximum of 8 orders per day for the assigned delivery person
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date();
@@ -219,7 +277,7 @@ const createOrder = async (req, res) => {
       },
     });
 
-    // Si ya tiene 8, buscar otro delivery disponible
+    // If already has 8, find another available delivery person
     if (ordersToday >= 8) {
       const otherDelivery = await findAvailableDelivery(token, delivery.id);
       if (!otherDelivery) {
@@ -238,7 +296,7 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields." });
     }
 
-    // Validar formato básico de productos
+    // Basic validation for products
     for (const p of products) {
       if (!p.productId || typeof p.quantity !== "number") {
         return res.status(400).json({
@@ -247,7 +305,7 @@ const createOrder = async (req, res) => {
       }
     }
 
-    // Generar código de tracking único
+    // Generate unique tracking code
     const trackingCode = await generateTrackingCode();
 
     if (!trackingCode) {
@@ -256,7 +314,7 @@ const createOrder = async (req, res) => {
         .json({ error: "Failed to generate tracking code." });
     }
 
-    // Obtener todos los productos del inventario
+    // Get all products from inventory
     let allProducts = [];
     try {
       const response = await axios.get(
@@ -269,17 +327,17 @@ const createOrder = async (req, res) => {
       );
       allProducts = response.data;
     } catch (err) {
-      console.error("Error trayendo todos los productos:", err?.response?.data || err.message);
+      console.error("Error fetching all products:", err?.response?.data || err.message);
       return res.status(500).json({ error: "Failed to fetch products from inventory." });
     }
 
-    // Crear un mapa para acceso rápido por productId
+    // Create a map for quick access by productId
     const productMap = {};
     for (const prod of allProducts) {
       productMap[prod.id] = prod;
     }
 
-    // Calcular totalAmount y preparar orderProductsData
+    // Calculate totalAmount and prepare orderProductsData
     let totalAmount = 0;
     const orderProductsData = [];
     for (const p of products) {
@@ -294,14 +352,14 @@ const createOrder = async (req, res) => {
       totalAmount += unitPrice * p.quantity;
 
       orderProductsData.push({
-        orderId: id, // Usamos el id de la orden
+        orderId: id, // Use the order id
         productId: p.productId,
         quantity: p.quantity,
         unitPrice: unitPrice,
       });
     }
 
-    // Crear la orden con el totalAmount calculado
+    // Create the order with the calculated totalAmount
     const order = await prisma.order.create({
       data: {
         id,
@@ -321,36 +379,36 @@ const createOrder = async (req, res) => {
       return res.status(404).json({ error: "The order cannot be created" });
     }
 
-    // Insertar productos de la orden
+    // Insert order products
     if (orderProductsData.length > 0) {
-      // Asigna el orderId real si usas autogenerado
+      // Assign the real orderId if using autogenerated
       orderProductsData.forEach(op => op.orderId = order.id);
       await prisma.orderProduct.createMany({
         data: orderProductsData,
       });
 
-      // Descontar stock en inventory-service
-  for (const p of products) {
-    try {
-      await axios.patch(
-        `${process.env.INVENTORY_URL}/product-warehouse/decrement-stock`,
-        {
-          productId: p.productId,
-          quantity: p.quantity
-        },
-        { headers: { Authorization: token } }
-      );
-    } catch (err) {
-      console.error(`Error descontando stock para ${p.productId}:`, err?.response?.data || err.message);
-      return res.status(400).json({
-        error: `No se pudo descontar el stock para el producto ${p.productId}`,
-        details: err?.response?.data || err.message
-      });
-    }
-  }
+      // Decrement stock in inventory-service
+      for (const p of products) {
+        try {
+          await axios.patch(
+            `${process.env.INVENTORY_URL}/product-warehouse/decrement-stock`,
+            {
+              productId: p.productId,
+              quantity: p.quantity
+            },
+            { headers: { Authorization: token } }
+          );
+        } catch (err) {
+          console.error(`Error decrementing stock for ${p.productId}:`, err?.response?.data || err.message);
+          return res.status(400).json({
+            error: `Could not decrement stock for product ${p.productId}`,
+            details: err?.response?.data || err.message
+          });
+        }
+      }
     }
 
-    // Enviar correo con el código de seguimiento
+    // Send email with the tracking code to the customer
     let customerEmail = "";
     let fullName = "";
     try {
@@ -365,7 +423,7 @@ const createOrder = async (req, res) => {
       customerEmail = userResponse.data.email;
       fullName = `${userResponse.data.name} ${userResponse.data.lastName}`;
     } catch (err) {
-      console.error("No se pudo obtener el email del cliente:", err?.response?.data || err.message);
+      console.error("Could not get customer email:", err?.response?.data || err.message);
     }
 
     if (customerEmail && fullName) {
@@ -377,7 +435,7 @@ const createOrder = async (req, res) => {
           email: customerEmail,
         });
       } catch (err) {
-        console.error("Error enviando el correo de tracking:", err?.response?.data || err.message);
+        console.error("Error sending tracking email:", err?.response?.data || err.message);
       }
     }
 
@@ -388,6 +446,11 @@ const createOrder = async (req, res) => {
   }
 };
 
+/**
+ * Updates an order by its ID.
+ * Responds with the updated order object.
+ * @param {string} req.params.id - The ID of the order to update.
+ */
 const updateOrder = async (req, res) => {
   const {
     deliveryId,
@@ -416,6 +479,11 @@ const updateOrder = async (req, res) => {
   }
 };
 
+/**
+ * Deletes an order by its ID.
+ * Responds with a success message if deleted.
+ * @param {string} req.params.id - The ID of the order to delete.
+ */
 const deleteOrder = async (req, res) => {
   try {
     await prisma.order.delete({ where: { id: req.params.id } });
@@ -425,7 +493,6 @@ const deleteOrder = async (req, res) => {
     res.status(500).json({ error: "Failed to delete order." });
   }
 };
-
 
 module.exports = {
   getAllOrders,

@@ -65,7 +65,7 @@ module.exports = {
   async getAll(req, res) {
     try {
       const records = await prisma.productWarehouse.findMany({
-        where: { deletedAt: null }, // solo registros no eliminados
+        where: { deletedAt: null }, // only non-deleted records
         include: {
           product: true,
           warehouse: true,
@@ -101,7 +101,7 @@ module.exports = {
     }
   },
 
-  // Create new record + movimiento inicial
+  // Create new record + initial movement
   async create(req, res) {
     const {
       productId,
@@ -111,7 +111,7 @@ module.exports = {
       lastRestock,
       expirationDate,
       status,
-      performedById, // opcional: quién hace la acción
+      performedById, // optional: who does the action
     } = req.body;
 
     try {
@@ -119,7 +119,7 @@ module.exports = {
         where: {
           productId,
           warehouseId,
-          deletedAt: null, // solo registros no eliminados
+          deletedAt: null, // only non-deleted records
         },
       });
 
@@ -141,7 +141,7 @@ module.exports = {
         },
       });
 
-      // Registrar movimiento inicial si stockQuantity > 0
+      // Record initial movement if stockQuantity > 0
       if (stockQuantity > 0) {
         await registerMovement({
           productWarehouseId: newRecord.id,
@@ -149,7 +149,7 @@ module.exports = {
           quantityMoved: stockQuantity,
           stockAfter: stockQuantity,
           performedById,
-          notes: "Stock inicial al crear registro",
+          notes: "Initial stock when creating record",
         });
       }
 
@@ -162,7 +162,7 @@ module.exports = {
     }
   },
 
-  // Update record + registro de movimiento si cambia stock
+  // Update record + movement record if stock changes
   async update(req, res) {
     const { id } = req.params;
     const data = req.body;
@@ -173,7 +173,7 @@ module.exports = {
       if (data.expirationDate)
         data.expirationDate = new Date(data.expirationDate);
 
-      // Obtener el registro actual para comparar stock
+      // Get the current record to compare stock
       const currentRecord = await prisma.productWarehouse.findUnique({
         where: { id },
       });
@@ -189,7 +189,7 @@ module.exports = {
         data,
       });
 
-      // Registrar movimiento solo si cambió stock
+      // Record movement only if stock changed
       if (newStock !== currentStock) {
         const quantityMoved = newStock - currentStock;
 
@@ -199,7 +199,7 @@ module.exports = {
           quantityMoved,
           stockAfter: newStock,
           performedById,
-          notes: "Actualización de stock",
+          notes: "Stock update",
         });
       }
 
@@ -212,7 +212,7 @@ module.exports = {
     }
   },
 
-  // Delete record + registrar movimiento DELETE
+  // Delete record + record movement DELETE
   async remove(req, res) {
     const { id } = req.params;
     const performedById = req.body?.performedById || null;
@@ -245,7 +245,7 @@ module.exports = {
         quantityMoved: -currentRecord.stockQuantity,
         stockAfter: 0,
         performedById,
-        notes: `Registro marcado como eliminado: ${notes}`,
+        notes: `Record marked as deleted: ${notes}`,
       });
 
       await prisma.productWarehouse.update({
@@ -268,7 +268,7 @@ module.exports = {
     }
 
     try {
-      // Busca el primer almacén con ese productId y suficiente stock
+      // Find the first warehouse with that productId and sufficient stock
       const productWarehouse = await prisma.productWarehouse.findFirst({
         where: {
           productId,
@@ -283,20 +283,20 @@ module.exports = {
 
       const newStock = productWarehouse.stockQuantity - quantity;
 
-      // Actualiza el stock
+      // Update the stock
       const updated = await prisma.productWarehouse.update({
         where: { id: productWarehouse.id },
         data: { stockQuantity: newStock },
       });
 
-      // Registrar movimiento de stock
+      // Record stock movement
       await registerMovement({
         productWarehouseId: productWarehouse.id,
         movementType: "DECREMENT",
         quantityMoved: -quantity,
         stockAfter: newStock,
         performedById: performedById || null,
-        notes: "Descuento de stock por pedido",
+        notes: "Stock discount per order",
       });
 
       await sendLowStockAlert(updated, req);

@@ -4,14 +4,14 @@ const path = require("path");
 const swaggerDefinition = {
   openapi: "3.0.0",
   info: {
-    title: "Reports Service API",
+    title: "Geo Service API",
     version: "1.0.0",
-    description: "API documentation for the reports microservice",
+    description: "Geo Service API documentation",
   },
   servers: [
     {
-      url: `/reports`,
-      description: "Report Service API",
+      url: `/geo`,
+      description: "Geo Service API",
     },
   ],
   components: {

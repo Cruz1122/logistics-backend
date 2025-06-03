@@ -53,11 +53,11 @@ function shouldGeocodeLocation(loc, uniqueAddresses, locations) {
   const distance = Math.sqrt(
     Math.pow(lat - prevLat, 2) + Math.pow(lng - prevLng, 2)
   );
-  // Aprox. 0.0003 grados ~ 30 metros
+  // Aprox. 0.0003 degrees ~ 30 meters
   return distance >= 0.0003;
 }
 
-// Helper to reverse geocode lat/lng y asegurar que sea en Colombia
+// Helper to reverse geocode lat/lng and ensure that it is in Colombia
 async function reverseGeocode(lat, lng) {
   try {
     const { data } = await axios.get(
@@ -79,7 +79,7 @@ async function reverseGeocode(lat, lng) {
       return null;
     }
 
-    // Buscar el primer resultado que incluya "Colombia" en address_components
+    // Find the first result that includes "Colombia" in address_components
     for (const result of data.results) {
       const countryComponent = result.address_components.find((ac) =>
         ac.types.includes("country")
@@ -89,7 +89,7 @@ async function reverseGeocode(lat, lng) {
       }
     }
 
-    // Ningún resultado pertenecía a Colombia
+    // No results belonged to Colombia
     return null;
   } catch (err) {
     console.error("reverseGeocode error:", err.message);
@@ -98,7 +98,7 @@ async function reverseGeocode(lat, lng) {
 }
 
 // GET /locations/geocoded-history?deliveryPersonId=...
-// Obtiene el historial de ubicaciones geocodificadas de un repartidor filtrando sólo Colombia
+// Gets the geocoded location history of a delivery driver by filtering only Colombia
 async function getGeocodedLocationHistory(req, res) {
   const { deliveryPersonId } = req.query;
 
@@ -107,7 +107,7 @@ async function getGeocodedLocationHistory(req, res) {
   }
 
   try {
-    // 1. Obtener las últimas 100 ubicaciones del repartidor (ordenadas ascendente por timestamp)
+    // 1. Get the last 100 delivery locations (sorted ascending by timestamp)
     const locations = await Location.find({ deliveryPersonId })
       .sort({ timestamp: 1 })
       .limit(100);
@@ -116,7 +116,7 @@ async function getGeocodedLocationHistory(req, res) {
       return res.status(404).json({ error: "No locations found." });
     }
 
-    // 2. Iterar y hacer reverse geocode sólo si cambia mucho (distance >= 30m)
+    // 2. Iterate and reverse geocode only if it changes a lot (distance >= 30m)
     const uniqueAddresses = [];
     let lastAddress = null;
 
@@ -126,7 +126,7 @@ async function getGeocodedLocationHistory(req, res) {
       if (shouldGeocodeLocation(loc, uniqueAddresses, locations)) {
         const address = await reverseGeocode(lat, lng);
 
-        // Si la dirección es null o no pertenece a Colombia, la descartamos
+        // If the address is null or does not belong to Colombia, we discard it
         if (address && address !== lastAddress) {
           uniqueAddresses.push({
             address,
@@ -189,11 +189,11 @@ async function updateLocation(req, res) {
       return res.status(400).json({ error: "Missing required data." });
     }
 
-    // Extraer IP del cliente (puede variar según proxys)
+    // Extract client IP (may vary depending on proxies)
     const clientIp =
       req.headers["x-forwarded-for"] || req.connection.remoteAddress;
 
-    // Log coordenadas y contexto
+    // Log coords and context
     console.log(`[updateLocation] DeliveryPersonId: ${deliveryPersonId}`);
     console.log(`[updateLocation] Coordinates: ${location.coordinates}`);
     console.log(`[updateLocation] Timestamp: ${new Date().toISOString()}`);
@@ -288,7 +288,7 @@ async function getOrdersWithCoords(req, res) {
     const geocodedOrders = await Promise.all(
       ordersWithAddress.map((order) =>
         limit(async () => {
-          // Forzar componente a Colombia
+          // Force component to Colombia
           const geo = await geocodeAddress(order.deliveryAddress);
           if (geo) {
             return {
@@ -318,7 +318,7 @@ async function geocodeAddress(address) {
   const params = {
     address,
     key: GOOGLE_GEOCODE_API_KEY,
-    components: "country:CO", // <-- sólo resultados en Colombia
+    components: "country:CO", // Only from Colombia
   };
   try {
     const response = await axios.get(url, { params });
@@ -377,7 +377,7 @@ async function getDeliveriesCoords(req, res) {
   try {
     console.log("Starting request to deliveries...");
 
-    // 1. Obtener todos los repartidores desde orders-service
+    // 1. Get all deliveries from orders-service
     const deliveriesResponse = await axios.get(
       `${process.env.ORDERS_URL}/delivery-persons/`,
       {
@@ -387,7 +387,7 @@ async function getDeliveriesCoords(req, res) {
     const deliveries = deliveriesResponse.data;
     console.log(`Deliveries obtained: ${deliveries.length}`);
 
-    // 2. Obtener todos los usuarios
+    // 2. Get all users from auth-service
     const usersResponse = await axios.get(
       `${process.env.AUTH_URL}/users/users/`,
       {
@@ -396,21 +396,21 @@ async function getDeliveriesCoords(req, res) {
     );
     const users = usersResponse.data;
 
-    // 3. Filtrar usuarios activos y obtener sus IDs
+    // 3. Filter active users and get their IDs
     const activeUserIds = new Set(
       users.filter((u) => u.isActive).map((u) => u.id)
     );
 
-    // 4. Filtrar repartidores asociados a usuarios activos
+    // 4. Filter delivery drivers associated with active users
     const activeDeliveries = deliveries.filter((d) =>
       activeUserIds.has(d.idUser)
     );
     const deliveryIds = activeDeliveries.map((d) => d.id);
 
-    // 5. Obtener ubicaciones más recientes en batch
+    // 5. Get latest locations in batch
     const latestLocationsMap = await getLatestLocationsBatch(deliveryIds);
 
-    // 6. Construir array con datos y coords
+    // 6. Build array with data and coords
     const deliveriesWithCoords = activeDeliveries
       .map((delivery) => {
         const latest = latestLocationsMap[delivery.id];
@@ -437,7 +437,7 @@ async function getDeliveriesCoords(req, res) {
   }
 }
 
-// Batch para obtener últimas ubicaciones
+// Batch to get latest locations
 async function getLatestLocationsBatch(deliveryPersonIds) {
   const pipeline = [
     { $match: { deliveryPersonId: { $in: deliveryPersonIds } } },

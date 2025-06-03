@@ -3,7 +3,12 @@ const ExcelJS = require("exceljs");
 const axios = require("axios");
 const moment = require("moment");
 
-// Función auxiliar para obtener el nombre del cliente
+/**
+ * Helper function to get the full name of a customer by their ID from the auth service.
+ * @param {string} customerId - The customer ID.
+ * @param {string} token - The authorization token.
+ * @returns {Promise<string>} The customer's full name or "(not available)" if not found.
+ */
 async function getCustomerName(customerId, token) {
   try {
     const resp = await axios.get(
@@ -19,7 +24,11 @@ async function getCustomerName(customerId, token) {
   }
 }
 
-// Función auxiliar para obtener el mapa de productos
+/**
+ * Helper function to get a map of product IDs to product names from the inventory service.
+ * @param {string} token - The authorization token.
+ * @returns {Promise<Object>} A map of productId to productName.
+ */
 async function getProductMap(token) {
   try {
     const resp = await axios.get(`${process.env.INVENTORY_URL}/product`, {
@@ -35,6 +44,12 @@ async function getProductMap(token) {
   }
 }
 
+/**
+ * Generates a PDF report for a specific delivery.
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
 const generateDeliveryReport = async (req, res) => {
   try {
     const { deliveryId } = req.params;
@@ -94,8 +109,6 @@ const generateDeliveryReport = async (req, res) => {
     );
 
     doc.pipe(res);
-
-    // ...existing code...
 
     doc
       .font("Helvetica-Bold")
@@ -182,6 +195,85 @@ const generateDeliveryReport = async (req, res) => {
   }
 };
 
+/**
+ * Enriches orders with customer names and product names.
+ * @param {Array} orders - Array of order objects.
+ * @param {Object} productMap - Map of product IDs to product names.
+ * @param {string} token - Authorization token for API requests.
+ * @return {Promise<void>}
+ * */
+async function enrichOrdersWithDetails(orders, productMap, token) {
+  for (const order of orders) {
+    order.customerName = await getCustomerName(order.customerId, token);
+
+    if (
+      Array.isArray(order.orderProducts) &&
+      order.orderProducts.length > 0
+    ) {
+      order.orderProducts.forEach((prod) => {
+        prod.productName = productMap[prod.productId] || prod.productId;
+      });
+    } else {
+      order.orderProducts = [];
+    }
+  }
+}
+
+/**
+ * Adds today's deliveries to the provided Excel sheet.
+ * @param {ExcelJS.Worksheet} sheet - The Excel worksheet to add data to.
+ * @param {Array} todayOrders - Array of today's order objects.
+ * @return {void}
+ * */
+function addTodayDeliveriesToSheet(sheet, todayOrders) {
+  sheet.addRow(["Today's Deliveries"]);
+  sheet.getRow(sheet.lastRow.number).font = { bold: true };
+
+  sheet.addRow([
+    "Order ID",
+    "Tracking Code",
+    "Customer Name",
+    "Delivery Address",
+    "Status",
+    "Amount",
+    "Products",
+  ]);
+  sheet.getRow(sheet.lastRow.number).font = { bold: true };
+
+  for (const order of todayOrders) {
+    const productsStr =
+      order.orderProducts && order.orderProducts.length > 0
+        ? order.orderProducts
+            .map((p) => `${p.productName} x${p.quantity}`)
+            .join(", ")
+        : "(No products)";
+
+    sheet.addRow([
+      order.id,
+      order.trackingCode || "-",
+      order.customerName || "-",
+      order.deliveryAddress || "-",
+      order.status,
+      order.totalAmount != null ? `$${order.totalAmount}` : "-",
+      productsStr,
+    ]);
+  }
+
+  sheet.columns.forEach((col) => {
+    if (col.header && typeof col.header === "string") {
+      col.width = col.header.length < 20 ? 20 : col.header.length + 5;
+    } else {
+      col.width = 20;
+    }
+  });
+}
+
+/**
+ * Generates a delivery report in XLSX format.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>}
+ */
 async function generateDeliveryReportXlsx(req, res) {
   try {
     const { deliveryId } = req.params;
@@ -191,7 +283,6 @@ async function generateDeliveryReportXlsx(req, res) {
       return res.status(400).json({ error: "deliveryId is required." });
     }
 
-    // Obtener órdenes del microservicio de órdenes
     const ordersResponse = await axios.get(`${process.env.ORDERS_URL}/orders`, {
       headers: { Authorization: token },
     });
@@ -200,27 +291,10 @@ async function generateDeliveryReportXlsx(req, res) {
       (order) => order.deliveryId === deliveryId
     );
 
-    // Obtener mapa de productos
     const productMap = await getProductMap(token);
 
-    // Enriquecer órdenes con nombres de cliente y productos
-    for (const order of allOrders) {
-      order.customerName = await getCustomerName(order.customerId, token);
+    await enrichOrdersWithDetails(allOrders, productMap, token);
 
-      if (
-        Array.isArray(order.orderProducts) &&
-        order.orderProducts.length > 0
-      ) {
-        order.orderProducts.forEach((prod) => {
-          prod.productName = productMap[prod.productId] || prod.productId;
-        });
-      } else {
-        // Asegura que orderProducts al menos sea un arreglo vacío para evitar errores posteriores
-        order.orderProducts = [];
-      }
-    }
-
-    // Filtrar por estados y fechas como en PDF
     const today = moment().startOf("day");
     const todayOrders = allOrders.filter((order) =>
       moment(order.estimatedDeliveryTime).isSame(today, "day")
@@ -233,11 +307,9 @@ async function generateDeliveryReportXlsx(req, res) {
     );
     const totalOrders = allOrders.length;
 
-    // Crear workbook y worksheet
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Delivery Report");
 
-    // Títulos y formato inicial
     sheet.mergeCells("A1", "E1");
     sheet.getCell("A1").value = `Delivery Report - Delivery ID: ${deliveryId}`;
     sheet.getCell("A1").font = { size: 16, bold: true };
@@ -245,7 +317,6 @@ async function generateDeliveryReportXlsx(req, res) {
     sheet.addRow(["Report Date:", moment().format("YYYY-MM-DD HH:mm:ss")]);
     sheet.addRow([]);
 
-    // Summary Section
     sheet.addRow(["Summary"]);
     sheet.getRow(sheet.lastRow.number).font = { bold: true };
     sheet.addRow(["Pending Orders", pendingOrders.length]);
@@ -259,53 +330,9 @@ async function generateDeliveryReportXlsx(req, res) {
       sheet.getRow(sheet.lastRow.number).font = { italic: true };
       sheet.addRow([]);
     } else {
-      // Today's Deliveries Section
-      sheet.addRow(["Today's Deliveries"]);
-      sheet.getRow(sheet.lastRow.number).font = { bold: true };
-
-      // Header for today deliveries table
-      sheet.addRow([
-        "Order ID",
-        "Tracking Code",
-        "Customer Name",
-        "Delivery Address",
-        "Status",
-        "Amount",
-        "Products",
-      ]);
-      sheet.getRow(sheet.lastRow.number).font = { bold: true };
-
-      // Fill orders of today
-      for (const order of todayOrders) {
-        const productsStr =
-          order.orderProducts && order.orderProducts.length > 0
-            ? order.orderProducts
-                .map((p) => `${p.productName} x${p.quantity}`)
-                .join(", ")
-            : "(No products)";
-
-        sheet.addRow([
-          order.id,
-          order.trackingCode || "-",
-          order.customerName || "-",
-          order.deliveryAddress || "-",
-          order.status,
-          order.totalAmount != null ? `$${order.totalAmount}` : "-",
-          productsStr,
-        ]);
-      }
-
-      // Ajustar ancho columnas
-      sheet.columns.forEach((col) => {
-        if (col.header && typeof col.header === "string") {
-          col.width = col.header.length < 20 ? 20 : col.header.length + 5;
-        } else {
-          col.width = 20; // Valor por defecto si no hay header
-        }
-      });
+      addTodayDeliveriesToSheet(sheet, todayOrders);
     }
 
-    // Enviar XLSX al cliente
     res.setHeader(
       "Content-Disposition",
       `attachment; filename=delivery-report-${deliveryId}.xlsx`

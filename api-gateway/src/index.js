@@ -9,13 +9,13 @@ const PORT = process.env.GATEWAY_PORT;
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 2. Ruta raíz: devuelve tu status page
+// 2. Root path: returns status page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.use(cors({
-  origin: "*", // Permitir todas las URLs
+  origin: "*", // Allow all URLs
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
@@ -41,7 +41,7 @@ app.use(
   createProxyMiddleware({
     target: SERVICES.geo,
     changeOrigin: true,
-    ws: true, // Habilitar WebSocket si es necesario
+    ws: true, // Enable WebSocket if needed
   })
 );
 

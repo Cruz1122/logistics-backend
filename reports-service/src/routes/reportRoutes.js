@@ -6,7 +6,7 @@ const { authenticateJWT } = require("../middlewares/Auth"); // si lo estás usan
 
 /**
  * @swagger
- * /reports/reports/delivery-report/{deliveryId}:
+ * /reports/delivery-report/{deliveryId}:
  *   get:
  *     summary: Generate and download PDF report for a delivery person
  *     tags: [Reports]
@@ -33,5 +33,34 @@ const { authenticateJWT } = require("../middlewares/Auth"); // si lo estás usan
  *         description: Internal server error
  */
 router.get("/delivery-report/:deliveryId", authenticateJWT, generateDeliveryReport);
+
+/**
+ * @swagger
+ * /reports/delivery-report-excel/{deliveryId}:
+ *   get:
+ *     summary: Generate and download Excel report for a delivery person
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deliveryId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: UUID of the delivery person
+ *     responses:
+ *       200:
+ *         description: Excel file containing the delivery report
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Missing deliveryId
+ *       500:
+ *         description: Internal server error
+ */
 router.get("/delivery-report-excel/:deliveryId", authenticateJWT, generateDeliveryReportXlsx);
 module.exports = router;

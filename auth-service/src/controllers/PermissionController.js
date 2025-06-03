@@ -1,5 +1,9 @@
 const prisma = require("../config/prisma");
 const axios = require("axios");
+
+/**
+ * Retrieves all permissions from the database.
+ */
 const getAllPermissions = async (req, res) => {
   try {
     const permissions = await prisma.permission.findMany();
@@ -10,6 +14,9 @@ const getAllPermissions = async (req, res) => {
   }
 };
 
+/**
+ * Retrieves a specific permission by its ID.
+ */
 const getPermissionById = async (req, res) => {
   const permissionId = req.params.id;
   try {
@@ -28,6 +35,10 @@ const getPermissionById = async (req, res) => {
   }
 };
 
+/**
+ * Creates a new permission and assigns it to all roles.
+ * For each role, creates a role-permission entry with full permissions if the role is ADMIN.
+ */
 const createPermission = async (req, res) => {
   const { name, description } = req.body;
 
@@ -48,13 +59,14 @@ const createPermission = async (req, res) => {
       data: { name, description },
     });
 
-    // Obtener todos los roles
+    // Get all roles
     const roles = await prisma.role.findMany();
 
-    // Endpoint para crear role-permission
+    // Endpoint to create role-permission
     const rolePermissionEndpoint = `${process.env.GATEWAY_INTERNAL_URL}/auth/role-permissions/`;
     const authHeader = req.headers.authorization;
 
+    // Assign the new permission to all roles
     await Promise.all(
       roles.map((role) =>
         axios.post(
@@ -87,6 +99,9 @@ const createPermission = async (req, res) => {
   }
 };
 
+/**
+ * Updates the name and description of a permission by its ID.
+ */
 const updatePermission = async (req, res) => {
   const permissionId = req.params.id;
   const { name, description } = req.body;
@@ -104,6 +119,9 @@ const updatePermission = async (req, res) => {
   }
 };
 
+/**
+ * Deletes a permission by its ID.
+ */
 const deletePermission = async (req, res) => {
   const permissionId = req.params.id;
   try {

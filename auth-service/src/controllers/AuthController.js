@@ -4,10 +4,12 @@ const { sendVerificationEmail } = require("../utils/mailer");
 const { generateToken } = require("../utils/jwt");
 const { client } = require("../utils/twilio");
 
+// Generates a 6-digit verification code for email or password reset
 const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6 dígitos
 };
 
+// Capitalizes the first letter of each word in a string
 const capitalize = (str) => {
   if (!str) return "";
   return str
@@ -16,12 +18,14 @@ const capitalize = (str) => {
     .join(" "); // Une las palabras nuevamente
 };
 
+// Generates a 6-digit 2FA code and reverses the digits for extra difference
 const generate2FACode = () => {
   // Generate a 6-digit code, but reverse the digits for extra difference
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   return code.split("").reverse().join("");
 };
 
+// Registers a new user, sends email verification code, and validates input
 const signUp = async (req, res) => {
   const { email, password, name, lastName, phone, roleId, cityId } = req.body;
 
@@ -108,6 +112,7 @@ const signUp = async (req, res) => {
 
 // ---------------------------------------|| -------------------------------------------||
 
+// Verifies the user's email using the code sent to their email
 const verifyEmail = async (req, res) => {
   const { email, code } = req.body;
 
@@ -153,6 +158,7 @@ const verifyEmail = async (req, res) => {
 
 // ---------------------------------------|| -------------------------------------------||
 
+// Resends the email verification code to the user
 const resendVerificationCode = async (req, res) => {
   const { email } = req.body;
 
@@ -206,6 +212,8 @@ const resendVerificationCode = async (req, res) => {
   }
 };
 
+
+// Handles user login, sends a 2FA code via SMS or email, and validates credentials
 const signIn = async (req, res) => {
   const { email, password, method } = req.body;
 
@@ -296,6 +304,7 @@ const signIn = async (req, res) => {
 
 // ---------------------------------------|| -------------------------------------------||
 
+// Verifies the 2FA code and returns a JWT token if successful
 const verifyTwoFactor = async (req, res) => {
   const { email, code } = req.body;
 
@@ -341,6 +350,8 @@ const verifyTwoFactor = async (req, res) => {
   }
 };
 
+
+// Resends the 2FA code via SMS or email
 const resend2FACode = async (req, res) => {
   const { email, method } = req.body;
   if (!email || !method) {
@@ -353,7 +364,7 @@ const resend2FACode = async (req, res) => {
       .json({ error: "Invalid method. Must be 'sms' or 'email'." });
   }
 
-  let user; 
+  let user;
   try {
     user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
@@ -428,6 +439,7 @@ const resend2FACode = async (req, res) => {
 
 // ---------------------------------------|| -------------------------------------------||
 
+// Sends a password reset code to the user's email
 const requestPasswordReset = async (req, res) => {
   const { email } = req.body;
 
@@ -475,6 +487,7 @@ const requestPasswordReset = async (req, res) => {
 
 // ---------------------------------------|| -------------------------------------------||
 
+// Resets the user's password using the reset code sent to their email
 const resetPassword = async (req, res) => {
   const { email, code, newPassword } = req.body;
 
@@ -530,6 +543,7 @@ const resetPassword = async (req, res) => {
 
 // ---------------------------------------|| -------------------------------------------||
 
+// Changes the user's password after validating the current password
 const changePassword = async (req, res) => {
   const { email, password, newPassword } = req.body;
 
@@ -586,6 +600,7 @@ const changePassword = async (req, res) => {
   }
 };
 
+// Retrieves the permissions for a user based on their role
 const getUserPermissions = async (req, res) => {
   const { userId } = req.params;
 
@@ -629,6 +644,7 @@ const getUserPermissions = async (req, res) => {
   }
 };
 
+// Health check endpoint for the service
 const health = async (req, res) => {
   try {
     res.status(200).send("OK");

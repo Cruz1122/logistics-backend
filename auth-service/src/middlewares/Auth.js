@@ -1,6 +1,13 @@
 const jwt = require("jsonwebtoken");
 const prisma = require("../config/prisma");
 
+
+/**
+ * Middleware to authenticate requests using JWT.
+ * Checks for a Bearer token in the Authorization header, verifies it,
+ * and attaches the user info (id and roleId) to the request object.
+ * Responds with 401 if the token is missing, and 403 if the token is invalid.
+ */
 function authenticateJWT(req, res, next) {
   const auth = req.headers.authorization;
   if (!auth?.startsWith("Bearer ")) {
@@ -21,6 +28,14 @@ function authenticateJWT(req, res, next) {
   }
 }
 
+
+/**
+ * Middleware to authorize a user based on their role's permissions.
+ * Checks if the user's role has the specified permission and action.
+ * Responds with 403 if the user does not have permission.
+ * @param {string} permissionName - The name of the permission to check.
+ * @param {string} action - The action to check (e.g., 'listar', 'crear', etc.).
+ */
 function authorize(permissionName, action) {
   return async (req, res, next) => {
     const { roleId } = req.user;

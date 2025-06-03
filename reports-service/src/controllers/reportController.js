@@ -3,7 +3,12 @@ const ExcelJS = require("exceljs");
 const axios = require("axios");
 const moment = require("moment");
 
-// Función auxiliar para obtener el nombre del cliente
+/**
+ * Helper function to get the full name of a customer by their ID from the auth service.
+ * @param {string} customerId - The customer ID.
+ * @param {string} token - The authorization token.
+ * @returns {Promise<string>} The customer's full name or "(not available)" if not found.
+ */
 async function getCustomerName(customerId, token) {
   try {
     const resp = await axios.get(
@@ -19,7 +24,11 @@ async function getCustomerName(customerId, token) {
   }
 }
 
-// Función auxiliar para obtener el mapa de productos
+/**
+ * Helper function to get a map of product IDs to product names from the inventory service.
+ * @param {string} token - The authorization token.
+ * @returns {Promise<Object>} A map of productId to productName.
+ */
 async function getProductMap(token) {
   try {
     const resp = await axios.get(`${process.env.INVENTORY_URL}/product`, {
@@ -35,6 +44,13 @@ async function getProductMap(token) {
   }
 }
 
+/**
+ * Generates a PDF delivery report for a specific delivery person.
+ * The report includes a summary and details of today's deliveries, including order info and products.
+ * Responds with a downloadable PDF file.
+ * @param {string} req.params.deliveryId - The ID of the delivery person.
+ * @param {string} req.headers.authorization - The Bearer token for authentication.
+ */
 const generateDeliveryReport = async (req, res) => {
   try {
     const { deliveryId } = req.params;
@@ -48,6 +64,13 @@ const generateDeliveryReport = async (req, res) => {
     const ordersResponse = await axios.get(`${process.env.ORDERS_URL}/orders`, {
       headers: { Authorization: token },
     });
+        // Fetch orders from the orders microservice
+        const ordersResponse = await axios.get(
+            `${process.env.ORDERS_URL}/orders`,
+            {
+                headers: { Authorization: token },
+            }
+        );
 
     let allOrders = ordersResponse.data.filter(
       (order) => order.deliveryId === deliveryId
@@ -55,11 +78,16 @@ const generateDeliveryReport = async (req, res) => {
 
     // Obtener mapa de productos
     const productMap = await getProductMap(token);
+        // Get product name map
+        const productMap = await getProductMap(token);
 
     // Enriquecer órdenes con nombres de cliente y productos
     for (const order of allOrders) {
       // Nombre del cliente
       order.customerName = await getCustomerName(order.customerId, token);
+        // Enrich orders with customer names and product names
+        for (const order of allOrders) {
+            order.customerName = await getCustomerName(order.customerId, token);
 
       // Nombres de productos
       if (order.orderProducts && order.orderProducts.length > 0) {
@@ -68,6 +96,12 @@ const generateDeliveryReport = async (req, res) => {
         });
       }
     }
+            if (order.orderProducts && order.orderProducts.length > 0) {
+                order.orderProducts.forEach(prod => {
+                    prod.productName = productMap[prod.productId] || prod.productId;
+                });
+            }
+        }
 
     const today = moment().startOf("day");
 
@@ -92,10 +126,18 @@ const generateDeliveryReport = async (req, res) => {
       "Content-Disposition",
       `attachment; filename=report-${deliveryId}.pdf`
     );
+        // Generate PDF
+        const doc = new PDFDocument();
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename=report-${deliveryId}.pdf`
+        );
 
     doc.pipe(res);
 
     // ...existing code...
+        doc.pipe(res);
 
     doc
       .font("Helvetica-Bold")
@@ -174,6 +216,37 @@ const generateDeliveryReport = async (req, res) => {
         doc.moveDown(0.5);
       }
     }
+        if (todayOrders.length === 0) {
+            doc.font("Helvetica").fontSize(12).text("No deliveries scheduled for today.", { italic: true });
+        } else {
+            for (const [idx, order] of todayOrders.entries()) {
+                doc.moveDown(0.5);
+                doc.font("Helvetica-Bold").fontSize(12).text(`${idx + 1}. Order ID: ${order.id}`);
+                doc.font("Helvetica-Bold").text(`   Tracking Code: `, { continued: true });
+                doc.font("Helvetica").text(`${order.trackingCode || "-"}`);
+                doc.font("Helvetica-Bold").text(`   Customer ID: `, { continued: true });
+                doc.font("Helvetica").text(`${order.customerId || "-"}`);
+                doc.font("Helvetica-Bold").text(`   Customer Name: `, { continued: true });
+                doc.font("Helvetica").text(`${order.customerName || "-"}`);
+                doc.font("Helvetica-Bold").text(`   Address: `, { continued: true });
+                doc.font("Helvetica").text(`${order.deliveryAddress || "-"}`);
+                doc.font("Helvetica-Bold").text(`   Status: `, { continued: true });
+                doc.font("Helvetica").text(`${order.status}`);
+                doc.font("Helvetica-Bold").text(`   Amount: `, { continued: true });
+                doc.font("Helvetica").text(`$${order.totalAmount || "-"}`);
+                doc.font("Helvetica-Bold").text(`   Products:`);
+                if (order.orderProducts && order.orderProducts.length > 0) {
+                    order.orderProducts.forEach(prod => {
+                        doc.font("Helvetica").text(
+                            `      - ${prod.productName || prod.productId} x${prod.quantity}`
+                        );
+                    });
+                } else {
+                    doc.font("Helvetica").text("      (No products)");
+                }
+                doc.moveDown(0.5);
+            }
+        }
 
     doc.end();
   } catch (error) {

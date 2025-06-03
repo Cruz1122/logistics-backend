@@ -28,7 +28,6 @@ router.get("/check", authenticateJWT, async (req, res) => {
 });
 
 
-// Ruta base: /role-permissions
 
 /**
  * @swagger

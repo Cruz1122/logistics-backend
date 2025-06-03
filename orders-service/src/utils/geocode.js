@@ -1,6 +1,13 @@
 const { Client } = require("@googlemaps/google-maps-services-js");
 const client = new Client();
 
+/**
+ * Geocodes an address using the Google Maps API.
+ * Returns the latitude and longitude of the first result.
+ * Throws an error if the address cannot be geocoded.
+ * @param {string} address - The address to geocode.
+ * @returns {Promise<{lat: number, lng: number}>} The latitude and longitude.
+ */
 async function geocode(address) {
   const res = await client.geocode({
     params: {

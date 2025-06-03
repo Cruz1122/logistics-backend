@@ -1,6 +1,11 @@
 const prisma = require("../config/prisma");
 
 module.exports = {
+    /**
+     * Retrieves all product warehouse movements from the database,
+     * including the associated product warehouse details.
+     * Responds with a JSON array of product movements.
+     */
     async getAll (req, res) {
         try {
             const productMovements = await prisma.productWarehouseMovement.findMany({
@@ -15,6 +20,12 @@ module.exports = {
         }
     },
 
+    /**
+     * Retrieves a specific product warehouse movement by its ID,
+     * including the associated product warehouse details.
+     * Responds with the movement object if found, or 404 if not found.
+     * @param {string} req.params.id - The ID of the product movement to retrieve.
+     */
     async getById (req, res) {
         const { id } = req.params;
         try {

@@ -5,7 +5,7 @@ module.exports = {
   async getAll(req, res) {
     try {
       const states = await prisma.state.findMany({
-        include: { cities: true }, // opcional: incluye las ciudades relacionadas
+        include: { cities: true }, // optional: include related cities
       });
       res.json(states);
     } catch (error) {
@@ -20,7 +20,7 @@ module.exports = {
     try {
       const state = await prisma.state.findUnique({
         where: { id },
-        include: { cities: true }, // opcional
+        include: { cities: true }, // optional
       });
       if (!state) {
         return res.status(404).json({ error: "State not found" });

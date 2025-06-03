@@ -15,7 +15,7 @@ const {
   resend2FACode,
 } = require("../controllers/AuthController");
 
-//Registro de usuario:
+//signup user:
 /**
  * @swagger
  * /auth/signup:
@@ -60,7 +60,7 @@ const {
  */
 router.post("/signup", signUp);
 
-//Verificación de correo electrónico:
+//verify email:
 /**
  * @swagger
  * /auth/verify-email:
@@ -91,7 +91,7 @@ router.post("/signup", signUp);
  */
 router.post("/verify-email", verifyEmail);
 
-//Reenvío de código de verificación:
+//resend verification code:
 /**
  * @swagger
  * /auth/resend-verification:
@@ -119,7 +119,7 @@ router.post("/verify-email", verifyEmail);
  */
 router.post("/resend-verification", resendVerificationCode);
 
-//Inicio de sesión:
+//signin user:
 /**
  * @swagger
  * /auth/signin:
@@ -154,7 +154,7 @@ router.post("/resend-verification", resendVerificationCode);
  */
 router.post("/signin", signIn);
 
-//Verificación de dos factores:
+//verify two-factor authentication (2FA) code:
 /**
  * @swagger
  * /auth/verify-two-factor:
@@ -186,7 +186,7 @@ router.post("/signin", signIn);
 
 router.post("/verify-two-factor", verifyTwoFactor);
 
-//Solicitud de restablecimiento de contraseña:
+//request password reset code via email:
 /**
  * @swagger
  * /auth/request-password-reset:
@@ -214,7 +214,7 @@ router.post("/verify-two-factor", verifyTwoFactor);
  */
 router.post("/request-password-reset", requestPasswordReset);
 
-//Restablecimiento de contraseña:
+//reset password using recovery code:
 /**
  * @swagger
  * /auth/reset-password:
@@ -248,7 +248,7 @@ router.post("/request-password-reset", requestPasswordReset);
  */
 router.post("/reset-password", resetPassword);
 
-//Cambio de contraseña:
+//change password when authenticated:
 /**
  * @swagger
  * /auth/change-password:

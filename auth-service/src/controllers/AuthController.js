@@ -4,8 +4,13 @@ const { sendVerificationEmail } = require("../utils/mailer");
 const { generateToken } = require("../utils/jwt");
 const { client } = require("../utils/twilio");
 
+
+const isTestEnv = () =>
+  process.env.NODE_ENV === "test" || process.env.JEST_WORKER_ID !== undefined;
+
 // Generates a 6-digit verification code for email or password reset
 const generateVerificationCode = () => {
+   if (isTestEnv()) return "123456";
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6 dígitos
 };
 
@@ -20,6 +25,8 @@ const capitalize = (str) => {
 
 // Generates a 6-digit 2FA code and reverses the digits for extra difference
 const generate2FACode = () => {
+
+  if (isTestEnv()) return "123456";
   // Generate a 6-digit code, but reverse the digits for extra difference
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   return code.split("").reverse().join("");

@@ -1,28 +1,28 @@
-# 🚚 Sistema de Gestión Logística con Geolocalización - Backend
+# Logistics Management System - Backend
 
-Proyecto final de Ingeniería de Software II (2025-1)
-
-Este sistema permite a empresas de distribución optimizar sus operaciones mediante microservicios para la gestión de usuarios, pedidos, inventario, geolocalización y reportes.
+This system enables distribution companies to optimize their operations through microservices for managing users, orders, inventory, geolocation, and reports.
 
 ---
 
-## 📦 Tecnologías
+## Technologies
 
-- Node.js + Express
-- Docker & Docker Compose
-- PostgreSQL + Prisma (servicios relacionales)
-- MongoDB (datos no estructurados / geolocalización)
-- API Gateway (http-proxy-middleware)
-- React + Vite (Frontend – en otro repo)
-- CI/CD: GitHub Actions (opcional)
-- Otros: JWT, Nodemailer, Twilio, ESLint
+- **Core:** Node.js, Express.js
+- **Databases:** PostgreSQL (for relational data) with Prisma ORM, and MongoDB (for geolocation data) with Mongoose.
+- **Containerization:** Docker & Docker Compose.
+- **API Gateway:** Custom implementation using `http-proxy-middleware`.
+- **CI/CD:** GitHub Actions.
+- **Authentication:** JWT (JSON Web Tokens) for securing endpoints.
+- **Notifications:** Nodemailer (for emails) and Twilio (for SMS).
+- **API Documentation:** Swagger (OpenAPI).
+- **File Handling:** Multer for file uploads, with support for CSV and Excel.
 
 ---
 
-## 🧱 Estructura del backend
+## Backend Architecture
 
-```bash
-backend/
+The backend is designed using a microservices architecture, where each service is responsible for a specific domain. An API Gateway acts as a single entry point for all client requests.
+
+```plaintext
 ├── api-gateway/
 ├── auth-service/
 ├── inventory-service/
@@ -33,82 +33,101 @@ backend/
 └── .env (local)
 ```
 
-Cada microservicio tiene su propio `Dockerfile`, `package.json` y lógica interna.
+Each microservice is a standalone app with its own `Dockerfile`, `package.json`, and business logic.
 
 ---
 
-## 🐳 Cómo levantar el proyecto
+## Microservices
 
-### 🔧 Requisitos previos
+### 1. API Gateway
 
-- Tener instalado: Docker y Docker Compose
+- **GitHub:** [api-gateway](https://github.com/Cruz1122/logistics-backend/tree/develop/api-gateway)
+- **Description:** Single entry point for all incoming requests. Routes traffic to the appropriate microservice and serves a status page.
+- **Base Path:** `/`
+- **Features:**
+    - Reverse proxy for all other microservices.
+    - Serves a static status page (`/`).
+- **Technologies:** `express`, `cors`, `http-proxy-middleware`.
 
-### ▶️ Pasos
+### 2. Authentication Service (`auth-service`)
 
-```bash
-# Desde la raíz del proyecto
-docker compose up --build
-```
+- **GitHub:** [auth-service](https://github.com/Cruz1122/logistics-backend/tree/develop/auth-service)
+- **Description:** Manages user authentication, roles, and permissions.
+- **Base Path:** `/auth`
+- **Features:**
+    - User registration (`/signup`)
+    - Email verification and two-factor authentication (2FA) (`/verify-email`, `/verify-two-factor`).
+    - User login (`/signin`)
+    - Password management (reset, change).
+    - CRUD operations for Users, Roles, and Permissions.
+- **Technologies:** `express`, `@prisma/client`, `bcrypt`, `jsonwebtoken`, `nodemailer`, `twilio`, `swagger-jsdoc`.
 
-Esto levantará todos los servicios en red interna. Podrás acceder a ellos vía API Gateway.
+### 3. Inventory Service (`inventory-service`)
+
+- **GitHub:** [inventory-service](https://github.com/Cruz1122/logistics-backend/tree/develop/inventory-service)
+- **Description:** Manages all inventory aspects, including products, categories, suppliers, and warehouses.
+- **Base Path:** `/inventory`
+- **Features:**
+    - CRUD for Products, Categories, Suppliers, and Warehouses.
+    - Manages stock levels and product movements between warehouses.
+    - Bulk data import from CSV/Excel files for products and warehouses.
+- **Technologies:** `express`, `@prisma/client`, `axios`, `csv-parser`, `xlsx`, `multer`, `nodemailer`.
+
+### 4. Orders Service (`orders-service`)
+
+- **GitHub:** [orders-service](https://github.com/Cruz1122/logistics-backend/tree/develop/orders-service)
+- **Description:** Handles the full order lifecycle from creation to delivery assignment.
+- **Base Path:** `/orders`
+- **Features:**
+    - CRUD operations for orders.
+    - Delivery staff management.
+    - Assigns available delivery personnel to new orders.
+    - Address geocoding using the Google Maps API.
+- **Technologies:** `express`, `@prisma/client`, `@googlemaps/google-maps-services-js`, `axios`, `nodemailer`.
+
+### 5. Geolocation Service (`geo-service`)
+
+- **GitHub:** [geo-service](https://github.com/Cruz1122/logistics-backend/tree/develop/geo-service)
+- **Description:** Manages real-time geolocation tracking for deliveries.
+- **Base Path:** `/geo`
+- **Features:**
+    - Saves and updates delivery staff locations.
+    - Provides endpoints for location history and finding nearby couriers.
+    - Real-time tracking via WebSockets.
+- **Technologies:** `express`, `mongoose`, `socket.io`, `axios`.
+
+### 6. Reports Service (`reports-service`)
+
+- **GitHub:** [reports-service](https://github.com/Cruz1122/logistics-backend/tree/develop/reports-service)
+- **Description:** Generates and serves reports based on data from other microservices.
+- **Base Path:** `/reports`
+- **Features:**
+    - Generates delivery reports in PDF and XLSX formats.
+    - Aggregates data from the `orders`, `inventory`, and `auth` services.
+- **Technologies:** `express`, `pdfkit`, `exceljs`, `axios`, `moment`.
 
 ---
 
-## 🌐 Rutas principales
+## How to Run the Project
 
-| Servicio        | Puerto | Endpoint base |
-|-----------------|--------|---------------|
-| API Gateway     | 3000   | `http://localhost:3000` |
-| Auth Service    | 4001   | `/auth` |
-| Inventario      | 4002   | `/inventory` |
-| Pedidos         | 4003   | `/orders` |
-| Geolocalización | 4004   | `/geo` |
-| Reportes        | 4005   | `/reports` |
+### Prerequisites
 
-> Accede a todo a través del gateway (por ejemplo: `http://localhost:3000/auth/login`)
+- Docker
+- Docker Compose
 
----
+### Steps
 
-## ⚙️ Comandos útiles
+1. **Clone the repository:**
+    ```bash
+    git clone https://github.com/Cruz1122/logistics-backend.git
+    cd logistics-backend
+    ```
 
-```bash
-# Ver contenedores activos
-docker ps
+2. **Set up environment variables:**
+    Create a `.env` file in the project root by copying `.env.example` and completing the required values.
 
-# Ver logs de un servicio
-docker logs auth-service
-
-# Entrar a un contenedor
-docker exec -it auth-service sh
-```
-
----
-
-## 🔀 Flujo de trabajo con Git
-
-### Ramas:
-
-- `main` → Producción
-- `develop` → Desarrollo integrado
-
-### Crear rama nueva desde develop:
-
-```bash
-git checkout develop
-git pull
-git checkout -b feature/nombre-de-tu-feature
-```
-
----
-
-## 👥 Integrantes
-
-- 👨‍💻 Juan Felipe Henao Tovar – Scrum Master / Backend
-- 🧑‍🎨 Jhon Hander Patiño Londoño – Product Owner / Frontend
-- ⚙️ Juan Camilo Cruz Parra – DevOps / Full Stack
-
----
-
-## 📄 Licencia
-
-Este proyecto fue desarrollado con fines académicos para la materia Ingeniería de Software II - Universidad de Caldas (2025).
+3. **Build and run the services:**
+    ```bash
+    docker-compose up --build
+    ```
+    This command builds the Docker images for each microservice and starts them. Services will be accessible through the API Gateway at `http://localhost:3000`.

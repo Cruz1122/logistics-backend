@@ -1,4 +1,23 @@
 const express = require("express");
+const authRoutes = require("./routes/AuthRoutes");
+const userRoutes = require("./routes/UserRoutes");
+const roleRoutes = require("./routes/RoleRoutes");
+const permissionRoutes = require("./routes/PermissionRoutes");
+const rolePermissionRoutes = require("./routes/RolePermissionRoutes");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./docs/swagger");
+
 const app = express();
-app.get("/", (_, res) => res.send("Auth Service OK"));
-app.listen(4001, () => console.log("Auth Service on port 4001"));
+const PORT = process.env.AUTH_PORT;
+
+app.use(express.json());
+app.use("/users", userRoutes);
+app.use("/roles", roleRoutes);
+app.use("/auth", authRoutes);
+app.use("/permissions", permissionRoutes);
+app.use("/role-permissions", rolePermissionRoutes);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+app.listen(PORT, () => {
+  console.log(`Auth Service running on port ${PORT}`);
+});

@@ -1,0 +1,51 @@
+id_producto;id_almacen;nombre_producto;categoria;descripcion;sku;codigo_barras;precio_unitario;cantidad_stock;nivel_reorden;ultima_reposicion;fecha_vencimiento;id_proveedor;peso_kg;dimensiones_cm;es_fragil;requiere_refrigeracion;estado
+P001;ALM001;"Televisor LED 55""";Electrónicos;Televisor LED de 55 pulgadas, 4K, Smart TV;ELE-TV-55;7,89123E+12;1299000;45;10;15/04/2025;;PROV003;18.5;55x33x8;true;false;activo
+P002;ALM001;Refrigerador No Frost;Electrodomésticos;Refrigerador de dos puertas, tecnología No Frost, 420 litros;ELC-REF-420;7,89123E+12;2199000;32;5;10/04/2025;;PROV003;75.0;70x180x70;true;false;activo
+P003;ALM001;"Laptop Ultraligera 14""";Computación;Laptop con procesador i7, 16GB RAM, 512GB SSD;COM-LAP-14;7,89123E+12;3499000;60;15;18/04/2025;;PROV005;1.3;34x24x1.8;true;false;activo
+P004;ALM001;Smartphone Premium;Telefonía;Smartphone con cámara 108MP, 256GB almacenamiento;TEL-SPH-PRE;7,89123E+12;2799000;85;20;20/04/2025;;PROV001;0.2;16x7x0.8;true;false;activo
+P005;ALM001;Tableta Gráfica;Computación;Tableta gráfica para diseñadores, presión 8192 niveles;COM-TAB-GRF;7,89123E+12;899000;40;10;12/04/2025;;PROV005;0.6;38x25x1;true;false;activo
+P006;ALM002;Leche Entera 1L;Lácteos;Leche entera pasteurizada, 1 litro;LAC-LCH-1L;7,89123E+12;4500;150;50;01/05/2025;15/05/2025;PROV010;1.03;9.5x6.5x20;false;true;activo
+P007;ALM002;Queso Mozzarella 500g;Lácteos;Queso mozzarella fresco, bloque de 500 gramos;LAC-QUE-MZZ;7,89123E+12;12000;80;30;02/05/2025;20/05/2025;PROV010;0.5;15x10x5;false;true;activo
+P008;ALM002;Yogurt Natural 1kg;Lácteos;Yogurt natural sin azúcar añadida, 1 kilogramo;LAC-YOG-NAT;7,89123E+12;8500;120;40;01/05/2025;18/05/2025;PROV010;1.0;12x12x20;false;true;activo
+P009;ALM002;Mantequilla 250g;Lácteos;Mantequilla sin sal, 250 gramos;LAC-MNT-250;7,89123E+12;7000;100;35;02/05/2025;02/06/2025;PROV010;0.25;12x8x3;false;true;activo
+P010;ALM002;Crema de Leche 500ml;Lácteos;Crema de leche para cocinar, 500 mililitros;LAC-CRM-500;7,89123E+12;9500;90;30;01/05/2025;25/05/2025;PROV010;0.51;8x8x15;false;true;activo
+P011;ALM003;Arroz Premium 5kg;Granos;Arroz blanco grano largo, premium, 5 kilogramos;GRA-ARZ-5KG;7,89123E+12;29000;200;50;10/04/2025;10/12/2025;PROV008;5.0;25x40x10;false;false;activo
+P012;ALM003;Frijol Rojo 1kg;Granos;Frijol rojo tipo cabecita negra, 1 kilogramo;GRA-FRJ-RED;7,89123E+12;8500;150;40;12/04/2025;12/11/2025;PROV008;1.0;15x25x5;false;false;activo
+P013;ALM003;Lentejas 1kg;Granos;Lentejas secas, 1 kilogramo;GRA-LNT-1KG;7,89123E+12;7800;180;45;15/04/2025;15/11/2025;PROV008;1.0;15x25x5;false;false;activo
+P014;ALM003;Garbanzo 1kg;Granos;Garbanzos secos, 1 kilogramo;GRA-GRB-1KG;7,89123E+12;9200;160;40;10/04/2025;10/11/2025;PROV008;1.0;15x25x5;false;false;activo
+P015;ALM003;Quinoa 500g;Granos;Quinoa orgánica, 500 gramos;GRA-QIN-500;7,89123E+12;14500;120;30;12/04/2025;12/10/2025;PROV008;0.5;12x20x5;false;false;activo
+P016;ALM004;Pantalón Casual Hombre;Ropa;Pantalón casual para hombre, talla 32-38, varios colores;ROP-PNT-CAS;7,89123E+12;89000;200;50;05/04/2025;;PROV007;0.4;30x20x5;false;false;activo
+P017;ALM004;Camisa Formal Mujer;Ropa;Camisa formal para mujer, tallas S-XL, varios colores;ROP-CMS-FOR;7,89123E+12;69000;180;45;08/04/2025;;PROV007;0.3;25x20x3;false;false;activo
+P018;ALM004;Vestido Casual;Ropa;Vestido casual para mujer, tallas S-XL, varios diseños;ROP-VST-CAS;7,89123E+12;109000;150;40;10/04/2025;;PROV007;0.35;30x20x3;false;false;activo
+P019;ALM004;Chaqueta Deportiva;Ropa;Chaqueta deportiva unisex, tallas S-XXL, varios colores;ROP-CHQ-DEP;7,89123E+12;129000;120;30;12/04/2025;;PROV007;0.5;35x25x5;false;false;activo
+P020;ALM004;Jeans Premium;Ropa;Jeans premium para hombre y mujer, varias tallas;ROP-JNS-PRE;7,89123E+12;149000;160;40;15/04/2025;;PROV007;0.6;30x20x5;false;false;activo
+P021;ALM005;Zapatillas Running;Calzado;Zapatillas para correr, varias tallas, unisex;CAL-ZPT-RUN;7,89123E+12;219000;100;25;10/04/2025;;PROV009;0.8;35x20x15;false;false;activo
+P022;ALM005;Zapatos Formales Hombre;Calzado;Zapatos formales de cuero para hombre, tallas 38-44;CAL-ZAP-FOR;7,89123E+12;189000;80;20;12/04/2025;;PROV009;1.0;35x20x15;false;false;activo
+P023;ALM005;Tacones Elegantes;Calzado;Zapatos de tacón para mujer, tallas 34-40;CAL-TAC-ELE;7,89123E+12;169000;90;25;15/04/2025;;PROV009;0.7;30x20x15;false;false;activo
+P024;ALM005;Botas de Seguridad;Calzado;Botas con punta de acero, tallas 38-45;CAL-BOT-SEG;7,89123E+12;249000;70;15;10/04/2025;;PROV009;1.2;40x30x15;false;false;activo
+P025;ALM005;Sandalias Casual;Calzado;Sandalias casuales unisex, varias tallas;CAL-SND-CAS;7,89123E+12;79000;120;30;12/04/2025;;PROV009;0.5;30x20x10;false;false;activo
+P026;ALM006;Manzanas Red Delicious kg;Frutas;Manzanas Red Delicious frescas, precio por kilogramo;FRU-MNZ-RED;7,89123E+12;7500;300;100;03/05/2025;10/05/2025;PROV012;1.0;10x10x10;false;true;activo
+P027;ALM006;Bananos kg;Frutas;Bananos frescos, precio por kilogramo;FRU-BNN-KG;7,89123E+12;3500;400;150;03/05/2025;08/05/2025;PROV012;1.0;10x10x10;false;true;activo
+P028;ALM006;Fresas 500g;Frutas;Fresas frescas, paquete de 500 gramos;FRU-FRS-500;7,89123E+12;8500;200;80;03/05/2025;07/05/2025;PROV012;0.5;15x10x5;false;true;activo
+P029;ALM006;Uvas Verdes sin Semilla 500g;Frutas;Uvas verdes sin semilla, paquete de 500 gramos;FRU-UVS-500;7,89123E+12;9500;180;70;03/05/2025;10/05/2025;PROV012;0.5;15x10x5;false;true;activo
+P030;ALM006;Naranjas Valencia kg;Frutas;Naranjas Valencia jugosas, precio por kilogramo;FRU-NRJ-VAL;7,89123E+12;4500;350;120;03/05/2025;12/05/2025;PROV012;1.0;10x10x10;false;true;activo
+P031;ALM007;Camiseta Deportiva;Ropa Deportiva;Camiseta deportiva de secado rápido, tallas S-XXL;DEP-CMS-DEP;7,89123E+12;59000;150;40;10/04/2025;;PROV014;0.2;25x20x3;false;false;activo
+P032;ALM007;Pantalón Deportivo;Ropa Deportiva;Pantalón deportivo con bolsillos, tallas S-XXL;DEP-PNT-DEP;7,89123E+12;79000;130;35;12/04/2025;;PROV014;0.4;30x20x5;false;false;activo
+P033;ALM007;Conjunto Deportivo;Ropa Deportiva;Conjunto deportivo (camiseta y pantalón), tallas S-XXL;DEP-CNJ-DEP;7,89123E+12;129000;100;25;15/04/2025;;PROV014;0.6;35x25x5;false;false;activo
+P034;ALM007;Medias Deportivas Pack x3;Ropa Deportiva;Pack de 3 pares de medias deportivas, tallas 35-44;DEP-MDS-PK3;7,89123E+12;35000;200;50;10/04/2025;;PROV014;0.15;15x10x5;false;false;activo
+P035;ALM007;Gorra Deportiva;Ropa Deportiva;Gorra deportiva ajustable, unisex;DEP-GRR-DEP;7,89123E+12;45000;120;30;12/04/2025;;PROV014;0.1;20x15x8;false;false;activo
+P036;ALM008;Detergente Líquido 2L;Limpieza;Detergente líquido concentrado, 2 litros;LIM-DET-2L;7,89123E+12;25000;200;50;10/04/2025;10/04/2026;PROV011;2.05;15x10x25;false;false;activo
+P037;ALM008;Suavizante 1L;Limpieza;Suavizante de ropa concentrado, 1 litro;LIM-SUA-1L;7,89123E+12;18000;180;45;12/04/2025;12/04/2026;PROV011;1.05;10x8x20;false;false;activo
+P038;ALM008;Limpia Vidrios 750ml;Limpieza;Limpiador de vidrios y espejos, 750 mililitros;LIM-VID-750;7,89123E+12;12000;150;40;10/04/2025;10/04/2026;PROV011;0.8;10x5x25;false;false;activo
+P039;ALM008;Desinfectante Multiusos 1L;Limpieza;Desinfectante multiusos concentrado, 1 litro;LIM-DES-1L;7,89123E+12;15000;170;45;12/04/2025;12/04/2026;PROV011;1.05;10x8x25;false;false;activo
+P040;ALM008;Jabón en Polvo 3kg;Limpieza;Jabón en polvo para ropa, 3 kilogramos;LIM-JAB-3KG;7,89123E+12;32000;120;30;15/04/2025;15/04/2026;PROV011;3.05;20x15x30;false;false;activo
+P041;ALM009;Arroz Blanco 1kg;Alimentos Básicos;Arroz blanco grano medio, 1 kilogramo;ALI-ARR-1KG;7,89123E+12;6500;300;100;10/04/2025;10/12/2025;PROV013;1.0;15x25x5;false;false;activo
+P042;ALM009;Azúcar Refinada 1kg;Alimentos Básicos;Azúcar blanca refinada, 1 kilogramo;ALI-AZU-1KG;7,89123E+12;5500;280;90;12/04/2025;12/12/2025;PROV013;1.0;15x20x5;false;false;activo
+P043;ALM009;Aceite Vegetal 1L;Alimentos Básicos;Aceite vegetal para cocina, 1 litro;ALI-ACE-1L;7,89123E+12;12000;250;80;15/04/2025;15/12/2025;PROV013;1.0;10x10x25;false;false;activo
+P044;ALM009;Pasta Espagueti 500g;Alimentos Básicos;Pasta tipo espagueti, 500 gramos;ALI-PAS-500;7,89123E+12;4500;300;100;10/04/2025;10/10/2025;PROV013;0.5;30x10x5;false;false;activo
+P045;ALM009;Sal Refinada 1kg;Alimentos Básicos;Sal refinada yodada, 1 kilogramo;ALI-SAL-1KG;7,89123E+12;2500;320;110;12/04/2025;12/04/2026;PROV013;1.0;15x10x5;false;false;activo
+P046;ALM010;Papel Higiénico x12;Hogar;Papel higiénico triple hoja, paquete x12 rollos;HOG-PPH-12;7,89123E+12;25000;180;45;10/04/2025;;PROV015;2.5;40x30x30;false;false;activo
+P047;ALM010;Servilletas x100;Hogar;Servilletas de papel, paquete x100 unidades;HOG-SRV-100;7,89123E+12;6000;200;50;12/04/2025;;PROV015;0.5;20x20x10;false;false;activo
+P048;ALM010;Toallas de Papel x3;Hogar;Toallas de papel absorbente, paquete x3 rollos;HOG-TLL-3;7,89123E+12;12000;170;45;15/04/2025;;PROV015;0.8;30x20x20;false;false;activo
+P049;ALM010;Pañuelos Desechables x6;Hogar;Pañuelos desechables, paquete x6 cajas;HOG-PAN-6;7,89123E+12;15000;150;40;10/04/2025;;PROV015;0.9;30x25x15;false;false;activo
+P050;ALM010;Bolsas para Basura x30;Hogar;Bolsas para basura grandes, paquete x30 unidades;HOG-BLS-30;7,89123E+12;8000;200;50;12/04/2025;;PROV015;0.6;30x30x10;false;false;activo

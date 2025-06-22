@@ -5,7 +5,6 @@ This system enables distribution companies to optimize their operations through 
 ---
 
 ## Technologies
-
 - **Core:** Node.js, Express.js
 - **Databases:** PostgreSQL (for relational data) with Prisma ORM, and MongoDB (for geolocation data) with Mongoose.
 - **Containerization:** Docker & Docker Compose.
